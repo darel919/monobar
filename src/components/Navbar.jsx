@@ -3,12 +3,13 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname} from 'next/navigation';
+import usePlaybackStore from '@/store/playbackStore';
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const { id, type } = usePlaybackStore(state => state);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -20,23 +21,15 @@ export default function Navbar() {
   }, []);
 
   if (pathname === '/watch') {
-    const id = searchParams.get('id');
-    const type = searchParams.get('type');
+    const href = id && type ? `/info?id=${id}&type=${type}` : '/';
+    
     return (
       <div className="w-full h-16 fixed top-0 left-0 right-0 z-[99]">
         <div className={`navbar min-h-16 h-full transition-colors duration-200 ${isScrolled ? 'bg-secondary shadow-md' : 'bg-transparent'} px-2 sm:px-6`}>
-        <Link href={`/info?id=${id}&type=${type}`} className="flex items-center flex-row w-12">
-            {/* <Image
-              src="/favicon.ico"
-              width={36}
-              height={36}
-              alt="darel's Projects"
-              priority
-            /> */}
+          <Link href={href} className="flex items-center flex-row w-12">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-8">
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
             </svg>
-
           </Link>
         </div>
       </div>

@@ -1,5 +1,5 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-const LOCAL_API_BASE_URL = process.env.NEXT_PUBLIC_LOCAL_API_BASE_URL || API_BASE_URL;
+const LOCAL_API_BASE_URL = process.NODE_ENV === 'development'? process.env.NEXT_PUBLIC_LOCAL_API_BASE_URL || API_BASE_URL : API_BASE_URL;
 
 // export { API_BASE_URL, LOCAL_API_BASE_URL };
 
@@ -70,34 +70,17 @@ export async function getMovieWatchData(id, providerId) {
     throw error;
   }
 }
+export async function updateState(deviceId, playSessionId) {
+  try {
+    const res = await fetch(`${LOCAL_API_BASE_URL}/status?deviceId=${deviceId}&playSessionId=${playSessionId}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      throw new Error(`Failed to update playback status (HTTP ${res.status})`);
+    }
+    return await res.json();
+  } catch (error) {
+    console.error("Error updating playback status:", error);
+  }
+}
 
-// export async function searchVideos(query, providerId) {
-//   try {
-//     const response = await serverFetch(`/search?q=${encodeURIComponent(query)}`, {}, providerId);
-//     const results = response && response.data ? response.data : [];
-//     return Array.isArray(results) ? results : [];
-//   } catch (error) {
-//     console.error("Search error:", error);
-//     return [];
-//   }
-// }
-
-// export async function getAllCategoriesData(providerId) {
-//     const res = await fetch(`${API_BASE_URL}/categories`, {
-//         cache: 'no-store',
-//         headers: {
-//             'Content-Type': 'application/json',
-//             'User-Agent': 'dp-iPlayer',
-//             'X-Environment': process.env.NODE_ENV,
-//             ...(providerId ? { 'Authorization': providerId } : {})
-//         }
-//     });
-//     if (!res.ok) {
-//         throw new Error(`API error: ${res.status} ${res.statusText}`);
-//     }
-//     return res.json();
-// }
-
-// export async function getCategoryData(categoryId, providerId) {
-//     return serverFetch(`/category?id=${categoryId}`, {}, providerId);
-// }

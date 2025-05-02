@@ -1,13 +1,14 @@
 "use client"
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import ErrorState from "@/components/ErrorState";
 import WatchBackdropDisplay from "@/components/WatchBackdropDisplay";
 import { getMovieData } from "@/lib/api";
 import Loading from "../loading";
+import usePlaybackStore from "@/store/playbackStore";
 
-export default function Info() {
+export default function InfoPage() {
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
   const type = searchParams.get("type");
@@ -15,6 +16,8 @@ export default function Info() {
   const [infoData, setInfoData] = useState(null);
   const [error, setError] = useState(null);
   const isDev = process.env.NODE_ENV === "development";
+  const storeContentId = usePlaybackStore(state => state.storeContentId);
+  const router = useRouter();
 
   useEffect(() => {
     if (!id || !type) return;
@@ -29,6 +32,11 @@ export default function Info() {
         setLoading(false);
       });
   }, [id, type]);
+
+  const handlePlay = () => {
+    storeContentId(id, type, infoData.playUrl);
+    router.push(`/watch`);
+  };
 
   if (!id || !type) {
     return (
@@ -75,8 +83,8 @@ export default function Info() {
             <h1 className="text-6xl font-bold mb-8">{infoData.Name}</h1>
           )}
           <h2 className="text-lg leading-[1.75]">{infoData.Overview}</h2>
-          <button className="my-4 px-12 btn btn-neutral hover:btn-accent w-full sm:w-fit">
-            <a href={`/watch?id=${id}&type=${type}`} className=" flex items-center">
+          <button onClick={handlePlay} className="my-4 px-12 btn btn-neutral hover:btn-accent w-full sm:w-fit">
+            <a className="flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-8">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
               </svg>

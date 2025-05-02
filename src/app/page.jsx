@@ -8,6 +8,7 @@ export default async function Home() {
   
   try {
     homeData = await getHome();
+    console.log(homeData)
   } catch (err) {
     error = err.message;
   }
