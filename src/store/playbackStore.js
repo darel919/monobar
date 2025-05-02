@@ -11,7 +11,7 @@ const usePlaybackStore = create((set, get) => ({
     status: 'idle',
     
     storeContentId: (id, type, urlKey) => {
-        if(id && type) {
+        if(id && type && urlKey) {
             set({
                 id: id,
                 type: type,
@@ -32,7 +32,7 @@ const usePlaybackStore = create((set, get) => ({
             fetchStreamUrl();
         } else {
             alert('Unable to start playback. Please refresh your page');
-            console.error('Unable to start playback. Missing parameters:', { id, type });
+            console.error('Unable to start playback. Missing parameters:', { id, type, urlKey });
         }
     },
     setKey: (playSessionId, deviceId, src) => {
@@ -45,7 +45,7 @@ const usePlaybackStore = create((set, get) => ({
             });
         } else {
             alert('Unable to start playback. Please refresh your page');
-            console.error('Unable to start playback. Missing parameters:', { playSessionId, deviceId, id, type });
+            console.error('Unable to start playback. Missing parameters:', { playSessionId, deviceId, src });
         }
        
     },
@@ -54,10 +54,6 @@ const usePlaybackStore = create((set, get) => ({
         const { deviceId, playSessionId } = get();
         if (deviceId && playSessionId) {
             try {
-                // await fetch(`/api/status?deviceId=${deviceId}&playSessionId=${playSessionId}`, {
-                //     method: 'POST',
-                //     headers: { 'Content-Type': 'application/json' },
-                // });
                 updateState(deviceId, playSessionId)
             } catch (error) {
                 console.error('Failed to update playback status:', error);

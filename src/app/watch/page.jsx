@@ -1,10 +1,10 @@
 "use client"
 
 import { useEffect, useState } from "react";
+import usePlaybackStore from "@/store/playbackStore";
 import ErrorState from "@/components/ErrorState";
 import Player from "@/components/Player";
 import { getMovieData } from "@/lib/api";
-import usePlaybackStore from "@/store/playbackStore";
 
 export default function WatchPage() {
     const { id, type } = usePlaybackStore(state => state);
@@ -51,7 +51,7 @@ export default function WatchPage() {
 
     return (
         <section className="min-h-screen pt-20 pb-16">
-            <Player poster={watchData?.BackdropImageTags}/>
+            <Player poster={watchData?.BackdropImageTags} id={id} type={type}/>
         </section>
     )
 }

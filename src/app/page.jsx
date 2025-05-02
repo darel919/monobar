@@ -1,3 +1,5 @@
+"use server"
+
 import {getHome} from "@/lib/api"
 import ErrorState from "@/components/ErrorState";
 
@@ -8,7 +10,6 @@ export default async function Home() {
   
   try {
     homeData = await getHome();
-    console.log(homeData)
   } catch (err) {
     error = err.message;
   }

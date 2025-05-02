@@ -30,9 +30,11 @@ export async function getHome() {
 export async function getMovieData(id, providerId) {
   try {
     const res = await fetch(`${LOCAL_API_BASE_URL}/watch?intent=info&id=${id}`, { 
-      // headers: {
-      //   ...(providerId ? { 'Authorization': providerId } : {})
-      // }
+      headers: {
+        "X-Environment": process.env.NODE_ENV,
+        'User-Agent': 'dp-Monobar',
+        // ...(providerId ? { 'Authorization': providerId } : {})
+      }
     });
     if (!res.ok) {
       if (res.status === 404) {
@@ -51,9 +53,11 @@ export async function getMovieData(id, providerId) {
 export async function getMovieWatchData(id, providerId) {
   try {
     const res = await fetch(`${LOCAL_API_BASE_URL}/watch?intent=play&id=${id}`, {
-      // headers: {
-      //   ...(providerId ? { 'Authorization': providerId } : {})
-      // }
+      headers: {
+        "X-Environment": process.env.NODE_ENV,
+        'User-Agent': 'dp-Monobar',
+        // ...(providerId ? { 'Authorization': providerId } : {})
+      }
     });
     if (!res.ok) {
       if (res.status === 404) {
