@@ -3,21 +3,26 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
+    "dev": "node version.js && next dev --turbopack",
+    "build": "node version.js && next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
+    "artplayer": "^5.2.3",
+    "artplayer-plugin-hls-control": "^1.0.1",
+    "geist": "^1.4.1",
+    "hls.js": "^1.6.2",
+    "next": "15.3.1",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "next": "15.3.1"
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
+    "daisyui": "^5.0.35",
     "eslint": "^9",
     "eslint-config-next": "15.3.1",
-    "@eslint/eslintrc": "^3"
+    "tailwindcss": "^4"
   }
 }
