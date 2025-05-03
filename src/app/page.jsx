@@ -2,6 +2,7 @@
 
 import {getHome} from "@/lib/api"
 import ErrorState from "@/components/ErrorState";
+import LibraryViewDisplay from "@/components/libraryViewDisplay";
 
 export default async function Home() {
 
@@ -10,6 +11,7 @@ export default async function Home() {
   
   try {
     homeData = await getHome();
+    console.log(homeData);
   } catch (err) {
     error = err.message;
   }
@@ -27,23 +29,16 @@ export default async function Home() {
 
   if (!homeData?.length) return null;
   return (
-    <section className="flex flex-col h-screen p-8 mt-12">
+    <section className="flex flex-col min-h-screen p-8 mt-12">
       <h1 className="text-4xl mb-8">Home</h1>
       {homeData.length > 0 ? (
         <section>
           {homeData.map((item, index) => (
             <div key={index} className="">
               <a href={`/library?id=${item.Id}`} className="hover:underline">
-                <h2 className="text-2xl font-bold">Latest {item.name}</h2>
+                <h2 className="text-2xl font-bold mb-4">Latest {item.Name}</h2>
               </a>
-              <section className="flex flex-row gap-1 overflow-x-auto pb-2">
-                {item.latest.map((item, index) => (
-                  <a href={`/info?id=${item.Id}&type=${item.Type}`} key={index} className=" p-4 flex flex-col items-center min-w-[200px] w-40" title={item.Overview}>
-                    <img loading="lazy" src={item.posterPath} alt={item.Name} className="w-40 h-64 object-cover rounded-lg mb-4" />
-                    <h2 className="w-full text-center">{item.Name}</h2>
-                  </a>
-                ))}
-              </section>
+              <LibraryViewDisplay data={item.latest} viewMode="posterView" />
             </div>
           ))}
         </section>

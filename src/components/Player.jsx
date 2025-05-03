@@ -69,7 +69,7 @@ export default function Player({ poster }) {
             if (art && art.destroy) {
                 stopPlayback();
                 art.destroy(false);
-                console.log("Unmounting Artplayer instance");
+                console.warn("Unmounting Artplayer instance");
             }
         };
     }, [src, poster]);
