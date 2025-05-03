@@ -92,15 +92,15 @@ export default function WatchBackdropDisplay({ backdrop, src, className, playTra
   return (
     <div 
       ref={containerRef}
-      className={`absolute inset-0 w-full h-full ${className}`} 
-      style={{ position: 'absolute', width: '100%', height: '100%' }}
+      className={`absolute w-full min-w-screen min-h-screen h-full ${className}`} 
+      // style={{ width: '100%', height: '100%' }}
     >
       <img
         src={backdrop}
         loading="eager"
         alt="Backdrop"
         className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${!videoLoaded || videoEnded || !isInViewport || !playTrailer ? 'opacity-100' : 'opacity-0'}`}
-        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        style={{ width: '100%', height: '100%' }}
       />
       
       {videoId && !videoEnded && isInViewport && playTrailer && (
@@ -119,8 +119,7 @@ export default function WatchBackdropDisplay({ backdrop, src, className, playTra
       )}
 
       <div 
-        className="absolute inset-0 pointer-events-none bg-gradient-to-b from-transparent to-black" 
-        style={{ width: '100%', height: '100%' }}
+        className="absolute inset-0 pointer-events-none bg-gradient-to-b from-transparent from-[0%] via-black via-[65%] to-transparent to-[200%] md:from-[20%] md:via-[80%] md:to-[125%]"
       />
     </div>
   );

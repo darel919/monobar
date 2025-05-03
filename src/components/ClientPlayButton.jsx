@@ -1,38 +1,114 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import usePlaybackStore from "@/store/playbackStore";
 import { useRouter } from "next/navigation";
 
 export default function ClientPlayButton({ id, type, playUrl }) {
-    const [isLoading, setIsLoading] = useState(false);
-    const storeContentId = usePlaybackStore(state => state.storeContentId);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [playbackData, setPlaybackData] = useState(null);
+    const initializePlayback = usePlaybackStore(state => state.initializePlayback);
     const router = useRouter();
 
-    const storeFunc = () => {
-        if (id && type && playUrl) {
-            setIsLoading(true);
-            storeContentId(id, type, playUrl);
-            router.push('/watch')
-        } else {
-            console.error('Unable to start playback. Missing parameters:', { id, type, playUrl });
+    useEffect(() => {
+        let mounted = true;
+
+        const fetchPlaybackData = async () => {
+            if (!id || !type || !playUrl) {
+                setError('Missing required parameters');
+                setIsLoading(false);
+                return;
+            }
+
+            try {
+                const response = await fetch(playUrl, {
+                    method: 'GET',
+                    headers: {
+                        "X-Environment": process.env.NODE_ENV,
+                    }
+                });
+                
+                if (!mounted) return;
+
+                if (!response.ok) {
+                    throw new Error(`Failed to start playback: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                if (!data.playSessionId || !data.deviceId || !data.playbackUrl) {
+                    throw new Error('Invalid playback response from server');
+                }
+
+                setPlaybackData(data);
+                setError(null);
+            } catch (err) {
+                if (mounted) {
+                    // console.error('Playback error:', err);
+                    setError(err.message);
+                }
+            } finally {
+                if (mounted) {
+                    setIsLoading(false);
+                }
+            }
+        };
+
+        fetchPlaybackData();
+
+        return () => {
+            mounted = false;
+            setIsLoading(false);
+            setError(null);
+            setPlaybackData(null);
+        };
+    }, [id, type, playUrl]);
+
+    const handleCantPlay = () => {
+        alert("Cannot play this title. Please try another title.");
+    }
+
+    const handlePlay = () => {
+        if (playbackData) {
+            initializePlayback(id, type, playbackData.playSessionId, playbackData.deviceId, playbackData.playbackUrl);
+            router.push('/watch');
         }
+    };
+
+    if (isLoading) {
+        return (
+            <button className="my-4 px-12 btn w-full sm:w-fit btn-disabled">
+                <span className="flex items-center gap-2">
+                    <span className="loading loading-spinner"></span>
+                    <span>Loading...</span>
+                </span>
+            </button>
+        );
+    }
+
+    if (error || !playbackData) {
+        return (
+            <button className="my-4 px-12 btn w-full sm:w-fit btn-error cursor-not-allowed" onClick={handleCantPlay}>
+                <span className="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-8">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                    </svg>
+                    <span>Cannot Play</span>
+                </span>
+            </button>
+        );
     }
 
     return (
-        <button onClick={() => storeFunc()} 
-            className="my-4 px-12 btn btn-neutral hover:btn-accent w-full sm:w-fit"
-            disabled={isLoading}
+        <button 
+            onClick={handlePlay}
+            className="my-4 px-12 btn w-full sm:w-fit btn-neutral hover:btn-accent"
         >
             <span className="flex items-center gap-2">
-                {isLoading ? (
-                    <span className="loading loading-spinner"></span>
-                ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-8">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
-                    </svg>
-                )}
-                <span>{isLoading ? 'Loading...' : 'Play'}</span>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-8">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
+                </svg>
+                <span>Play</span>
             </span>
         </button>
     );

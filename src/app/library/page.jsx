@@ -6,12 +6,12 @@ import LibraryViewDisplay from "@/components/libraryViewDisplay";
 import SortControls from "@/components/librarySortControl";
 
 export default async function LibraryTypeView({ searchParams }) {
-  const { id, sortBy = "DateCreated", sortOrder = "desc" } = await searchParams;
+  const { id, sortBy = "ProductionYear", sortOrder = "desc" } = await searchParams;
   const sortOptions = [
     { value: "DateCreated", label: "Date Created" },
     { value: "SortName", label: "Sort Name" },
     { value: "ProductionYear", label: "Production Year" },
-    { value: "CommunityRating", label: "Community Rating" },
+    { value: "CommunityRating", label: "Ratings" },
     { value: "Random", label: "Random" },
     { value: "Runtime", label: "Runtime" },
   ];
@@ -31,7 +31,7 @@ export default async function LibraryTypeView({ searchParams }) {
   let error = null;
   try {
     libData = await getTypeData({ id, sortBy, sortOrder });
-    console.log("Library Data:", libData);
+    // console.log("Library Data:", libData);
   } catch (err) {
     error = err.message;
   }
