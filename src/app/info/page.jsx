@@ -5,6 +5,8 @@ import WatchBackdropDisplay from "@/components/WatchBackdropDisplay";
 import { getMovieData } from "@/lib/api";
 import Loading from "../loading";
 import ClientPlayButton from "@/components/ClientPlayButton";
+import LibraryViewDisplay from "@/components/libraryViewDisplay";
+import PeopleViewDisplay from "@/components/peopleViewDisplay";
 
 export async function generateMetadata({ searchParams }) {
   const { id } = await searchParams;
@@ -72,15 +74,18 @@ export default async function InfoPage({ searchParams }) {
   }
 
   return (
-    <div className="min-h-screen flex items-start md:items-end justify-start text-white relative">
+    <div className="min-h-screen flex flex-col justify-start text-white relative">
       {infoData.BackdropImageTags && (
         infoData.RemoteTrailers && infoData.RemoteTrailers[0] ? (
+          <>
           <WatchBackdropDisplay backdrop={infoData.BackdropImageTags} src={infoData.RemoteTrailers[0].Url} playTrailer={isDev ? false : true} className="fixed inset-0 -z-10" title={infoData.OriginalTitle} />
+          <div className="absolute inset-0 -z-5 bg-gradient-to-b from-transparent from-[0%] via-black/85 via-[65%] to-transparent to-[200%] md:from-[15%] md:via-[65%] md:to-[175%]" /> 
+          </>
         ) : (
           <WatchBackdropDisplay backdrop={infoData.BackdropImageTags} className="fixed inset-0 -z-10" />
         )
       )}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent from-[0%] via-black/85 via-[65%] to-transparent to-[200%] md:from-[15%] md:via-[65%] md:to-[175%]" />
+
       <section className="w-full md:w-[50vw] h-full flex flex-col pb-8 md:pb-24 mt-[50vh] md:mt-[40vh] px-8 sm:px-8 relative">
         <section className="flex flex-col w-full h-full">
           {infoData.ImageTags.Logo ? (
@@ -146,7 +151,20 @@ export default async function InfoPage({ searchParams }) {
           <h2 className="text-lg leading-[1.6] sm:leading-[1.75] mt-4 md:after:absolute md:after:bottom-0 md:after:left-0 md:after:w-full md:after:h-32">{infoData.Overview}</h2>
         </div>
         {infoData.playUrl && <ClientPlayButton id={id} type={type} playUrl={infoData.playUrl} />}
+
       </section>
+      {infoData.People && infoData.People.length > 0 && (
+        <section className="ml-8 my-4">
+          <p className="font-bold w-fit p-2 text-white mb-4">Cast and Crew</p>
+          <PeopleViewDisplay data={infoData.People} />
+        </section>
+      )}
+      {infoData.recommendation && infoData.recommendation.length > 0 && (
+        <section className="px-8 my-4">
+        <p className="font-bold w-fit p-2 text-white">Similar to {infoData.Name}</p>
+          <LibraryViewDisplay data={infoData.recommendation} viewMode="recommendation" />
+        </section>
+      )}
     </div>
   );
 }
