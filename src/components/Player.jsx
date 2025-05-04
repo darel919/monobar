@@ -24,11 +24,27 @@ export default function Player({ poster, fullData }) {
 
     const adaptSubtitleFormat = () => {
         if (!fullData?.subtitles?.length) return [];
-        
-        return fullData.subtitles.map((subitem, index) => ({
-            ...subitem,
-            default: index === 0
-        }));
+        try {
+            const nameCount = {};
+            return fullData.subtitles.map((subitem, index) => {
+                let name = subitem.name || subitem.html || `Subtitle ${index+1}`;
+                if (nameCount[name]) {
+                    nameCount[name] += 1;
+                    name = `${name} (${nameCount[name]})`;
+                } else {
+                    nameCount[name] = 1;
+                }
+                return {
+                    ...subitem,
+                    name,
+                    html: name,
+                    default: index === 0
+                };
+            });
+        } catch (error) {
+            console.error("Error adapting subtitle format:", error);
+            return [];
+        }
     };
 
     useEffect(() => {

@@ -69,6 +69,7 @@ export default function ClientPlayButton({ id, type, playUrl }) {
     }
 
     const handlePlay = () => {
+        setIsLoading(true); // Switch to loading state immediately
         if (playbackData) {
             initializePlayback(id, type, playbackData.playSessionId, playbackData.deviceId, playbackData.playbackUrl);
             router.push('/watch');

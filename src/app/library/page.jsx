@@ -3,18 +3,20 @@
 import { getTypeData } from "@/lib/api";
 import ErrorState from "@/components/ErrorState";
 import LibraryViewDisplay from "@/components/libraryViewDisplay";
-import SortControls from "@/components/librarySortControl";
+import LibrarySortControl from "@/components/librarySortControl";
+import { cookies } from "next/headers";
 
 export default async function LibraryTypeView({ searchParams }) {
-  const { id, sortBy = "ProductionYear", sortOrder = "desc" } = await searchParams;
-  const sortOptions = [
-    { value: "DateCreated", label: "Date Created" },
-    { value: "SortName", label: "Sort Name" },
-    { value: "ProductionYear", label: "Production Year" },
-    { value: "CommunityRating", label: "Ratings" },
-    { value: "Random", label: "Random" },
-    { value: "Runtime", label: "Runtime" },
-  ];
+  // Await cookies and searchParams as required by Next.js 13+ app directory
+  const cookieStore = await cookies();
+  const params = await searchParams;
+  let defaultSortBy = cookieStore.get("librarySortBy")?.value || "ProductionYear";
+  let defaultSortOrder = cookieStore.get("librarySortOrder")?.value || "desc";
+
+  // Use params if present, else use cookie/default
+  const id = params.id;
+  const sortBy = params.sortBy || defaultSortBy;
+  const sortOrder = params.sortOrder || defaultSortOrder;
 
   if (!id) {
     return (
@@ -55,7 +57,7 @@ export default async function LibraryTypeView({ searchParams }) {
           <h1 className="text-4xl">{libData.library.Name}</h1>
           <p>{libData.content.length} items found.</p>
         </section>
-        <SortControls id={id} sortBy={sortBy} sortOrder={sortOrder} />
+        <LibrarySortControl id={id} sortBy={sortBy} sortOrder={sortOrder} />
       </section>
       <LibraryViewDisplay data={libData.content} />
     </section>

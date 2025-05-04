@@ -1,5 +1,6 @@
 "use client"
 import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const sortOptions = [
   { value: "DateCreated", label: "Date Created" },
@@ -10,12 +11,41 @@ const sortOptions = [
   { value: "Runtime", label: "Runtime" },
 ];
 
-export default function SortControls({ id, sortBy, sortOrder }) {
+export default function LibrarySortControl({ id, sortBy, sortOrder }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [currentSortBy, setCurrentSortBy] = useState(sortBy);
+  const [currentSortOrder, setCurrentSortOrder] = useState(sortOrder);
+
+  useEffect(() => {
+    setCurrentSortBy(sortBy);
+    setCurrentSortOrder(sortOrder);
+  }, [sortBy, sortOrder]);
+
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.cookie = `librarySortBy=${currentSortBy}; path=/`;
+      document.cookie = `librarySortOrder=${currentSortOrder}; path=/`;
+    }
+  }, [currentSortBy, currentSortOrder]);
+
+  const handleSortChange = (newSortBy, newSortOrder) => {
+    setCurrentSortBy(newSortBy);
+    setCurrentSortOrder(newSortOrder);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("id", id); // Ensure only one id param
+    params.set("sortBy", newSortBy);
+    params.set("sortOrder", newSortOrder);
+    // Remove duplicate id params if any
+    const paramString = params.toString().replace(/(&?id=[^&]*){2,}/, `&id=${id}`);
+    router.replace(`/library?${paramString}`);
+  };
 
   const handleChange = (e) => {
-    e.target.form.requestSubmit(); // Submit the form on any change
+    const form = e.target.form;
+    const newSortBy = form.sortBy.value;
+    const newSortOrder = form.sortOrder.value;
+    handleSortChange(newSortBy, newSortOrder);
   };
 
   return (
@@ -28,7 +58,7 @@ export default function SortControls({ id, sortBy, sortOrder }) {
         <select
           className="select select-bordered"
           name="sortBy"
-          defaultValue={sortBy}
+          defaultValue={currentSortBy}
         >
           {sortOptions.map(opt => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -42,7 +72,7 @@ export default function SortControls({ id, sortBy, sortOrder }) {
         <select
           className="select select-bordered"
           name="sortOrder"
-          defaultValue={sortOrder}
+          defaultValue={currentSortOrder}
         >
           <option value="asc">Ascending</option>
           <option value="desc">Descending</option>
