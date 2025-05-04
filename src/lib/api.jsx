@@ -27,9 +27,9 @@ export async function getHome() {
     return serverFetch(`/`);
 }
 
-export async function getMovieData(id, providerId) {
+export async function getMovieData(id, intent, providerId) {
   try {
-    const res = await fetch(`${LOCAL_API_BASE_URL}/watch?intent=info&id=${id}`, { 
+    const res = await fetch(`${LOCAL_API_BASE_URL}/watch?intent=${intent}&id=${id}`, { 
       headers: {
         "X-Environment": process.env.NODE_ENV,
         'User-Agent': 'dp-Monobar',
@@ -43,30 +43,6 @@ export async function getMovieData(id, providerId) {
       throw new Error(`Failed to fetch video data (HTTP ${res.status})`);
     }
     return await res.json();
-  } catch (error) {
-    if (error.message === "fetch failed") {
-      throw new Error("Unable to connect to the video server. Please check your internet connection or try again later.");
-    }
-    throw error;
-  }
-}
-export async function getMovieWatchData(id, providerId) {
-  try {
-    const res = await fetch(`${LOCAL_API_BASE_URL}/watch?intent=play&id=${id}`, {
-      headers: {
-        "X-Environment": process.env.NODE_ENV,
-        'User-Agent': 'dp-Monobar',
-        // ...(providerId ? { 'Authorization': providerId } : {})
-      }
-    });
-    if (!res.ok) {
-      if (res.status === 404) {
-        throw new Error("Video not found. It may have been removed, unavailable, or you might have an invalid link.");
-      }
-      throw new Error(`Failed to fetch video stream (HTTP ${res.status})`);
-    }
-    // Instead of .json(), get the m3u8 playlist as text
-    return await res.text();
   } catch (error) {
     if (error.message === "fetch failed") {
       throw new Error("Unable to connect to the video server. Please check your internet connection or try again later.");

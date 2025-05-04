@@ -14,17 +14,22 @@ export default function WatchPage() {
     
     const [watchData, setWatchData] = useState(null);
     const [fetchError, setFetchError] = useState(null);
+    const isDev = process.env.NODE_ENV === "development";
+
 
     useEffect(() => {
         async function fetchData() {
             if (!id || !type) return;
             try {
-                const data = await getMovieData(id);
+                const data = await getMovieData(id, "play");
                 if (!data) {
                     setFetchError("No data returned.");
                     setWatchData(null);
                 } else {
                     setWatchData(data);
+                    if(isDev) {
+                        console.log("Watch Data: ", data);
+                    }
                     setFetchError(null);
                     document.title = `${data.Name} - MoNobar by DWS`;
                 }
@@ -74,7 +79,7 @@ export default function WatchPage() {
 
     return (
         <section className="min-h-screen pt-20 pb-16">
-            <Player poster={watchData?.BackdropImageTags} id={id} type={type}/>
+            <Player poster={watchData?.BackdropImageTags} id={id} type={type} fullData={watchData}/>
         </section>
     )
 }

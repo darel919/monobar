@@ -93,7 +93,6 @@ export default function WatchBackdropDisplay({ backdrop, src, className, playTra
     <div 
       ref={containerRef}
       className={`absolute w-full min-w-screen min-h-screen h-full ${className}`} 
-      // style={{ width: '100%', height: '100%' }}
     >
       <img
         src={backdrop}
@@ -117,10 +116,6 @@ export default function WatchBackdropDisplay({ backdrop, src, className, playTra
           />
         </div>
       )}
-
-      <div 
-        className="absolute inset-0 pointer-events-none bg-gradient-to-b from-transparent from-[0%] via-black via-[65%] to-transparent to-[200%] md:from-[20%] md:via-[80%] md:to-[125%]"
-      />
     </div>
   );
 }

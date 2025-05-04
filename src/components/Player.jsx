@@ -6,11 +6,10 @@ import Hls from "hls.js";
 import artplayerPluginHlsControl from "artplayer-plugin-hls-control";
 import usePlaybackStore from "@/store/playbackStore";
 
-export default function Player({ poster }) {
+export default function Player({ poster, fullData }) {
     const artRef = useRef();
     const isDev = process.env.NODE_ENV === 'development';
 
-    // Memoize selectors to prevent infinite loops
     const stopPlayback = usePlaybackStore(useCallback(state => state.stopPlayback, []));
     const status = usePlaybackStore(useCallback(state => state.status, []));
     const src = usePlaybackStore(useCallback(state => state.src, []));
@@ -23,6 +22,15 @@ export default function Player({ poster }) {
         }
     };
 
+    const adaptSubtitleFormat = () => {
+        if (!fullData?.subtitles?.length) return [];
+        
+        return fullData.subtitles.map((subitem, index) => ({
+            ...subitem,
+            default: index === 0
+        }));
+    };
+
     useEffect(() => {
         if (!poster || !src || status !== 'playing') return;
 
@@ -32,6 +40,9 @@ export default function Player({ poster }) {
         if(isDev) {
             Artplayer.DEBUG = true;
         }
+
+        const subtitles = adaptSubtitleFormat();
+        const selectedSubtitle = subtitles.length > 0 ? subtitles[0] : null;
 
         const art = new Artplayer({
             container: artRef.current,
@@ -50,6 +61,26 @@ export default function Player({ poster }) {
             airplay: true,
             theme: '#ff0000',
             type: 'm3u8',
+            subtitle: selectedSubtitle ? {
+                url: selectedSubtitle.url,
+                type: 'vtt',
+                escape: false,
+                encoding: 'utf-8',
+            } : undefined,
+            settings: subtitles.length > 0 ? [
+                {
+                    width: 250,
+                    html: 'Subtitle',
+                    tooltip: selectedSubtitle?.name,
+                    selector: subtitles,
+                    onSelect: function (item) {
+                        art.subtitle.switch(item.url, {
+                            name: item.html,
+                        });
+                        return item.html;
+                    },
+                },
+            ] : [],
             plugins: [
                 artplayerPluginHlsControl({
                     quality: {

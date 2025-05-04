@@ -8,10 +8,13 @@ export default async function Home() {
 
   let homeData = null;
   let error = null;
+  const isDev = process.env.NODE_ENV === "development";
   
   try {
     homeData = await getHome();
-    // console.log(homeData);
+    if(isDev) {
+      console.log("Home Data: ", homeData);
+    }
   } catch (err) {
     error = err.message;
   }
