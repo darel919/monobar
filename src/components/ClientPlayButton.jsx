@@ -36,7 +36,7 @@ export default function ClientPlayButton({ id, type, playUrl }) {
                 }
 
                 const data = await response.json();
-                if (!data.playSessionId || !data.deviceId || !data.playbackUrl) {
+                if (!data.playbackUrl) {
                     throw new Error('Invalid playback response from server');
                 }
 
@@ -44,7 +44,6 @@ export default function ClientPlayButton({ id, type, playUrl }) {
                 setError(null);
             } catch (err) {
                 if (mounted) {
-                    // console.error('Playback error:', err);
                     setError(err.message);
                 }
             } finally {
@@ -69,9 +68,9 @@ export default function ClientPlayButton({ id, type, playUrl }) {
     }
 
     const handlePlay = () => {
-        setIsLoading(true); // Switch to loading state immediately
+        setIsLoading(true);
         if (playbackData) {
-            initializePlayback(id, type, playbackData.playSessionId, playbackData.deviceId, playbackData.playbackUrl);
+            initializePlayback(id, type, playbackData.playbackUrl);
             router.push('/watch');
         }
     };

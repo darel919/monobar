@@ -33,10 +33,9 @@ export default function LibrarySortControl({ id, sortBy, sortOrder }) {
     setCurrentSortBy(newSortBy);
     setCurrentSortOrder(newSortOrder);
     const params = new URLSearchParams(searchParams.toString());
-    params.set("id", id); // Ensure only one id param
+    params.set("id", id);
     params.set("sortBy", newSortBy);
     params.set("sortOrder", newSortOrder);
-    // Remove duplicate id params if any
     const paramString = params.toString().replace(/(&?id=[^&]*){2,}/, `&id=${id}`);
     router.replace(`/library?${paramString}`);
   };

@@ -7,16 +7,14 @@ import LibrarySortControl from "@/components/librarySortControl";
 import { cookies } from "next/headers";
 
 export default async function LibraryTypeView({ searchParams }) {
-  // Await cookies and searchParams as required by Next.js 13+ app directory
   const cookieStore = await cookies();
   const params = await searchParams;
   let defaultSortBy = cookieStore.get("librarySortBy")?.value || "ProductionYear";
   let defaultSortOrder = cookieStore.get("librarySortOrder")?.value || "desc";
-
-  // Use params if present, else use cookie/default
   const id = params.id;
   const sortBy = params.sortBy || defaultSortBy;
   const sortOrder = params.sortOrder || defaultSortOrder;
+  const isDev = process.env.NODE_ENV === "development";
 
   if (!id) {
     return (
@@ -33,7 +31,9 @@ export default async function LibraryTypeView({ searchParams }) {
   let error = null;
   try {
     libData = await getTypeData({ id, sortBy, sortOrder });
-    // console.log("Library Data:", libData);
+    if(isDev) {
+      console.log("Library Data:", libData);
+    }
   } catch (err) {
     error = err.message;
   }

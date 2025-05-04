@@ -11,11 +11,14 @@ export default function Player({ poster, fullData }) {
     const isDev = process.env.NODE_ENV === 'development';
 
     const stopPlayback = usePlaybackStore(useCallback(state => state.stopPlayback, []));
+    const startPlayback = usePlaybackStore(state => state.startPlayback);
     const status = usePlaybackStore(useCallback(state => state.status, []));
     const src = usePlaybackStore(useCallback(state => state.src, []));
+    const playSessionId = usePlaybackStore(useCallback(state => state.playSessionId, []));
 
     const handlePlayerError = (error) => {
         console.error('Artplayer error:', error);
+        console.log('Calling stopPlayback on error');
         stopPlayback();
         if (artRef.current?.art?.destroy) {
             artRef.current.art.destroy(false);
@@ -46,16 +49,27 @@ export default function Player({ poster, fullData }) {
             return [];
         }
     };
+    useEffect(() => {
+        if (!src) return;
+        let sessionId = null;
+        try {
+            const match = src.match(/[?&]genSessionId=([^&]+)/);
+            sessionId = match ? match[1] : null;
+            if (sessionId && playSessionId !== sessionId) {
+                usePlaybackStore.setState({ playSessionId: sessionId });
+                console.warn("Set playSessionId in store:", sessionId);
+            }
+        } catch (e) {
+        }
+    }, [src, playSessionId]);
 
     useEffect(() => {
-        if (!poster || !src || status !== 'playing') return;
+        if (!poster || !src || status !== 'playing' || !playSessionId) return;
+        if (!artRef.current) return;
 
         Artplayer.AUTO_PLAYBACK_TIMEOUT = 15000;
         Artplayer.RECONNECT_SLEEP_TIME  = 3000;
         Artplayer.RECONNECT_TIME_MAX  = 7;
-        if(isDev) {
-            Artplayer.DEBUG = true;
-        }
 
         const subtitles = adaptSubtitleFormat();
         const selectedSubtitle = subtitles.length > 0 ? subtitles[0] : null;
@@ -144,14 +158,15 @@ export default function Player({ poster, fullData }) {
         artRef.current.art = art;
 
         return () => {
-            if (art && art.destroy) {
+            if (art && typeof art.destroy === 'function') {
                 art.off('error', handlePlayerError);
+                console.log('Calling stopPlayback on unmount');
                 stopPlayback();
                 art.destroy(false);
                 console.warn("Unmounting Artplayer instance");
             }
         };
-    }, [src, poster, status, stopPlayback]);
+    }, [src, poster, status, stopPlayback, playSessionId]);
 
     if (status !== 'playing') return null;
 

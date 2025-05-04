@@ -10,13 +10,11 @@ const usePlaybackStore = create((set, get) => ({
     status: 'idle',
     error: null,
     
-    initializePlayback: (id, type, playSessionId, deviceId, src) => {
-        if(id && type && playSessionId && deviceId && src) {
+    initializePlayback: (id, type, src) => {
+        if(id && type && src) {
             set({
                 id,
                 type,
-                playSessionId,
-                deviceId,
                 src,
                 status: 'playing',
                 error: null
@@ -29,24 +27,33 @@ const usePlaybackStore = create((set, get) => ({
         }
     },
 
-    stopPlayback: async () => {
-        const { deviceId, playSessionId } = get();
-        if (deviceId && playSessionId) {
-            try {
-                updateState(deviceId, playSessionId)
-            } catch (error) {
-                console.error('Failed to update playback status:', error);
-            }
-        }
+    startPlayback: async (playSessionId) => {
+        console.warn("Starting playback...");
         set({ 
-            status: 'stopped',
-            playSessionId: null,
-            deviceId: null,
-            id: null,
-            type: null,
-            src: null,
-            error: null
+            playSessionId, 
         });
+    },
+
+    stopPlayback: async () => {
+        console.warn("Stopping playback...");
+        const { playSessionId } = get();
+        try {
+            if (playSessionId) {
+                await updateState(playSessionId);
+            }
+        } catch (error) {
+            console.error('Unable to report stopped playback status!\n', error);
+        } finally {
+            set({ 
+                status: 'stopped',
+                playSessionId: null,
+                deviceId: null,
+                id: null,
+                type: null,
+                src: null,
+                error: null
+            });
+        }
     },
 }));
 

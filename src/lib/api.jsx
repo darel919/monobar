@@ -77,9 +77,9 @@ export async function getTypeData(options = {}, providerId) {
     throw error;
   }
 }
-export async function updateState(deviceId, playSessionId) {
+export async function updateState(playSessionId) {
   try {
-    const res = await fetch(`${LOCAL_API_BASE_URL}/status?deviceId=${deviceId}&playSessionId=${playSessionId}`, {
+    const res = await fetch(`${LOCAL_API_BASE_URL}/status?playSessionId=${playSessionId}`, {
       method: 'DELETE',
     });
     if (!res.ok) {

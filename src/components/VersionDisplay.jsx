@@ -9,7 +9,7 @@ export default function VersionDisplay({ version, buildDate }) {
         try {
             const dateObject = new Date(buildDate);
             if (!isNaN(dateObject.getTime())) {
-                formattedDate = dateObject.toLocaleString(); // Includes time
+                formattedDate = dateObject.toLocaleString(); 
             } else {
                 formattedDate = buildDate;
             }

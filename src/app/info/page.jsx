@@ -5,7 +5,6 @@ import WatchBackdropDisplay from "@/components/WatchBackdropDisplay";
 import { getMovieData } from "@/lib/api";
 import Loading from "../loading";
 import ClientPlayButton from "@/components/ClientPlayButton";
-import { Metadata } from "next";
 
 export async function generateMetadata({ searchParams }) {
   const { id } = await searchParams;
