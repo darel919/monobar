@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import usePlaybackStore from "@/store/playbackStore";
 import { useRouter } from "next/navigation";
+import { getOrCreateGenSessionId } from '@/lib/genSessionId';
 
 export default function ClientPlayButton({ id, type, playUrl }) {
     const [isLoading, setIsLoading] = useState(true);
@@ -26,6 +27,7 @@ export default function ClientPlayButton({ id, type, playUrl }) {
                     method: 'GET',
                     headers: {
                         "X-Environment": process.env.NODE_ENV,
+                        "X-Session-ID": getOrCreateGenSessionId(),
                     }
                 });
                 

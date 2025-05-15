@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import Footer from '@/components/Footer';
 import Loading from './loading';
 import ScrollToTop from "@/components/ScrollToTop";
+import SessionInitializer from '@/components/SessionInitializer';
 import "./globals.css";
 import Navbar from '@/components/Navbar';
 
@@ -18,6 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body>
+        <SessionInitializer />
         <Navbar/>
         <ScrollToTop />
         <Suspense fallback={<Loading />}>

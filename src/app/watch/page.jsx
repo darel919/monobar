@@ -21,7 +21,7 @@ export default function WatchPage() {
         async function fetchData() {
             if (!id || !type) return;
             try {
-                const data = await getMovieData(id, "play");
+                const data = await getMovieData(id, "info");
                 if (!data) {
                     setFetchError("No data returned.");
                     setWatchData(null);
@@ -45,9 +45,9 @@ export default function WatchPage() {
     if (!id || !type) {
         return (
             <ErrorState 
-                message="Invalid Request" 
+                message="Sorry, but this title can't be played" 
                 actionText="Go Back" 
-                actionDesc="The request is invalid. Please check the URL or try again."
+                actionDesc="A required identifier or type is missing. Please check the URL or try again."
                 action="back"
             />
         );
@@ -56,9 +56,9 @@ export default function WatchPage() {
     if (fetchError) {
         return (
             <ErrorState 
-                message="Currently, this title is unavailable." 
+                message="Sorry, but this title can't be played" 
                 actionText="Go Back" 
-                actionDesc={`We are having trouble loading this title. Please try again later.`}
+                // actionDesc={`${fetchError}`}
                 errorCode={fetchError}
                 action="back"
             />

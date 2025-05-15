@@ -138,14 +138,20 @@ export default async function InfoPage({ searchParams }) {
               })()}
             </section>
           )}
-        </section>
+        </section>        
         <section className="my-2">
-          <p className="text-xs mb-1">Subtitles available: </p>
-          <section className="flex flex-wrap gap-1">
-            {infoData.MediaStreams && infoData.MediaStreams.filter(s => s.IsTextSubtitleStream).map((stream, idx) => (
-              <span key={idx} className="badge badge-ghost text-xs ">{stream.DisplayLanguage ? stream.DisplayLanguage : stream.DisplayTitle}</span>
-            ))}
-          </section>
+          {infoData.MediaStreams && infoData.MediaStreams.some(s => s.IsTextSubtitleStream) ? (
+            <>
+              <p className="text-xs mb-1">Subtitles available: </p>
+              <section className="flex flex-wrap gap-1">
+                {infoData.MediaStreams.filter(s => s.IsTextSubtitleStream).map((stream, idx) => (
+                  <span key={idx} className="badge badge-ghost text-xs">{stream.DisplayLanguage ? stream.DisplayLanguage : stream.DisplayTitle}</span>
+                ))}
+              </section>
+            </>
+          ) : (
+            <p className="text-xs mb-1">No subtitles available</p>
+          )}
         </section>
         <div className="overflow-hidden md:relative my-4">
           <h2 className="text-lg leading-[1.6] sm:leading-[1.75] mt-4 md:after:absolute md:after:bottom-0 md:after:left-0 md:after:w-full md:after:h-32">{infoData.Overview}</h2>

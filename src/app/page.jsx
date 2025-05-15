@@ -36,14 +36,16 @@ export default async function Home() {
       <h1 className="text-4xl mb-8">Home</h1>
       {homeData.length > 0 ? (
         <section>
-          {homeData.map((item, index) => (
-            <div key={index} className="">
-              <a href={`/library?id=${item.Id}`} className="hover:underline">
-                <h2 className="text-2xl font-bold mb-4">Latest {item.Name}</h2>
-              </a>
-              <LibraryViewDisplay data={item.latest} viewMode="posterView" />
-            </div>
-          ))}
+          {homeData.map((item, index) =>
+            item.latest.length > 0 ? (
+              <div key={index} className="">
+                <a href={`/library?id=${item.Id}`} className="hover:underline">
+                  <h2 className="text-2xl font-bold mb-4">Latest {item.Name}</h2>
+                </a>
+                <LibraryViewDisplay data={item.latest} viewMode="posterView" />
+              </div>
+            ) : null
+          )}
         </section>
       ) : null}
     </section>

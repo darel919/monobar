@@ -1,7 +1,7 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 const LOCAL_API_BASE_URL = process.NODE_ENV === 'development' ? process.env.NEXT_PUBLIC_LOCAL_API_BASE_URL || API_BASE_URL : API_BASE_URL;
 
-// export { API_BASE_URL, LOCAL_API_BASE_URL };
+export { API_BASE_URL, LOCAL_API_BASE_URL };
 
 export async function serverFetch(endpoint, options = {}, providerId) {
   const url = `${LOCAL_API_BASE_URL}${endpoint}`;
@@ -9,9 +9,16 @@ export async function serverFetch(endpoint, options = {}, providerId) {
     'Content-Type': 'application/json',
     'User-Agent': 'dp-Monobar',
     'X-Environment': process.env.NODE_ENV,
-    // ...(providerId ? { 'Authorization': providerId } : {}),
     ...options.headers,
   };
+
+  if (typeof window !== 'undefined') {
+    const genSessionId = localStorage.getItem('genSessionId');
+    if (genSessionId) {
+      headers['X-Session-ID'] = genSessionId;
+    }
+  }
+
   const response = await fetch(url, {
     ...options,
     cache: 'no-store',
@@ -77,10 +84,20 @@ export async function getTypeData(options = {}, providerId) {
     throw error;
   }
 }
-export async function updateState(playSessionId) {
+export async function updateState(genSessionId) {
+  if (!genSessionId) {
+    console.warn("No session ID provided for updateState");
+    return;
+  }
   try {
-    const res = await fetch(`${LOCAL_API_BASE_URL}/status?playSessionId=${playSessionId}`, {
+    const res = await fetch(`${LOCAL_API_BASE_URL}/status?playSessionId=${genSessionId}`, {
       method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'dp-Monobar',
+        'X-Environment': process.env.NODE_ENV,
+        'X-Session-ID': genSessionId
+      }
     });
     if (!res.ok) {
       throw new Error(`Failed to update playback status (HTTP ${res.status})`);
@@ -88,6 +105,7 @@ export async function updateState(playSessionId) {
     return await res.json();
   } catch (error) {
     console.error("Error updating playback status:", error);
+    throw error;
   }
 }
 

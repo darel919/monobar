@@ -2,8 +2,6 @@ import { updateState } from '@/lib/api';
 import { create } from 'zustand';
 
 const usePlaybackStore = create((set, get) => ({
-    playSessionId: null,
-    deviceId: null,
     id: null,
     type: null,
     src: null,
@@ -27,27 +25,15 @@ const usePlaybackStore = create((set, get) => ({
         }
     },
 
-    startPlayback: async (playSessionId) => {
-        console.warn("Starting playback...");
-        set({ 
-            playSessionId, 
-        });
-    },
-
     stopPlayback: async () => {
         console.warn("Stopping playback...");
-        const { playSessionId } = get();
         try {
-            if (playSessionId) {
-                await updateState(playSessionId);
-            }
+            await updateState();
         } catch (error) {
             console.error('Unable to report stopped playback status!\n', error);
         } finally {
             set({ 
                 status: 'stopped',
-                playSessionId: null,
-                deviceId: null,
                 id: null,
                 type: null,
                 src: null,
