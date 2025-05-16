@@ -109,3 +109,23 @@ export async function updateState(genSessionId) {
   }
 }
 
+export async function searchMedia(query) {
+  try {
+    const res = await fetch(`${LOCAL_API_BASE_URL}/search?q=${encodeURIComponent(query)}`, {
+      headers: {
+        "X-Environment": process.env.NODE_ENV,
+        'User-Agent': 'dp-Monobar',
+      }
+    });
+    if (!res.ok) {
+      throw new Error(`Failed to fetch search results (HTTP ${res.status})`);
+    }
+    return await res.json();
+  } catch (error) {
+    if (error.message === "fetch failed") {
+      throw new Error("Unable to connect to the server. Please check your internet connection.");
+    }
+    throw error;
+  }
+}
+
