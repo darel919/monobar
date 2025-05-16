@@ -5,11 +5,35 @@ import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { usePathname} from 'next/navigation';
 import usePlaybackStore from '@/store/playbackStore';
+import { getHome } from '@/lib/api';
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [homeData, setHomeData] = useState([]);
+  const [isHydrated, setIsHydrated] = useState(false);
   const pathname = usePathname();
   const { id, type } = usePlaybackStore(state => state);
+
+  useEffect(() => {
+    setIsHydrated(true);
+    const cached = sessionStorage.getItem('homeData');
+    if (cached) {
+      setHomeData(JSON.parse(cached));
+    } else {
+      const fetchHomeData = async () => {
+        try {
+          const data = await getHome();
+          if (data?.length) {
+            setHomeData(data);
+            sessionStorage.setItem('homeData', JSON.stringify(data));
+          }
+        } catch (err) {
+          console.error('Failed to load libraries:', err);
+        }
+      };
+      fetchHomeData();
+    }
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -49,12 +73,24 @@ export default function Navbar() {
                 </svg>
               </label>
             </div>
+            {/* Navigation Drawer */}
             <div className="drawer-side z-[100] left-0">
               <label htmlFor="navbar-menu" aria-label="close sidebar" className="drawer-overlay"></label>
               <ul className="menu p-4 w-80 min-h-full bg-secondary">
                 <li>
                   <Link href="/" className='text-lg' onClick={() => document.getElementById('navbar-menu').checked = false}>Home</Link>
                 </li>
+                {isHydrated && homeData.map((item) => (
+                  <li key={item.Id}>
+                    <Link 
+                      href={`/library?id=${item.Id}`} 
+                      className='text-lg'
+                      onClick={() => document.getElementById('navbar-menu').checked = false}
+                    >
+                      {item.Name}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
