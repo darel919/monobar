@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import usePlaybackStore from "@/store/playbackStore";
 import { useRouter } from "next/navigation";
 import { getOrCreateGenSessionId } from '@/lib/genSessionId';
+import { getEnvironmentHeader } from '@/lib/api';
 
 export default function ClientPlayButton({ id, type, playUrl }) {
     const [isLoading, setIsLoading] = useState(true);
@@ -11,6 +12,27 @@ export default function ClientPlayButton({ id, type, playUrl }) {
     const [playbackData, setPlaybackData] = useState(null);
     const initializePlayback = usePlaybackStore(state => state.initializePlayback);
     const router = useRouter();
+
+    useEffect(() => {
+        async function detectIsHome() {
+            if(process.env.NODE_ENV === "development") return;
+            if (window.location.hostname === "monobar.server.drl") return;
+            try {
+                const res = await fetch(process.env.NEXT_PUBLIC_DARELISME_PING_URL, { 
+                    cache: "no-store", 
+                    timeout: 5000 
+                });
+                if (res.ok) return;
+                
+                localStorage.setItem('redirectAfterSwitch', window.location.pathname + window.location.search);
+                window.location.href = process.env.NEXT_PUBLIC_APP_LOCAL_BASE_URL + window.location.pathname + window.location.search;
+            } catch {
+                localStorage.setItem('redirectAfterSwitch', window.location.pathname + window.location.search);
+                window.location.href = process.env.NEXT_PUBLIC_APP_LOCAL_BASE_URL + window.location.pathname + window.location.search;
+            }
+        }
+        detectIsHome();
+    }, []);
 
     useEffect(() => {
         let mounted = true;
@@ -26,8 +48,9 @@ export default function ClientPlayButton({ id, type, playUrl }) {
                 const response = await fetch(playUrl, {
                     method: 'GET',
                     headers: {
-                        "X-Environment": process.env.NODE_ENV,
+                        "X-Environment": getEnvironmentHeader(),
                         "X-Session-ID": getOrCreateGenSessionId(),
+                        'Origin': typeof window !== 'undefined' ? window.location.origin : ''
                     }
                 });
                 

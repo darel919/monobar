@@ -6,7 +6,7 @@ import Hls from "hls.js";
 import artplayerPluginHlsControl from "artplayer-plugin-hls-control";
 import artplayerPluginChapter from 'artplayer-plugin-chapter';
 import usePlaybackStore from "@/store/playbackStore";
-import { LOCAL_API_BASE_URL } from "@/lib/api";
+import { API_BASE_URL, getEnvironmentHeader } from "@/lib/api";
 import { getOrCreateGenSessionId } from '@/lib/genSessionId';
 import { useRouter } from 'next/navigation';
 
@@ -83,7 +83,7 @@ export default function Player({ poster, fullData }) {
     function postStatus(intent, data) {
         const sessionId = getOrCreateGenSessionId();
         if (!sessionId) return;
-        return fetch(`${LOCAL_API_BASE_URL}/status`, {
+        return fetch(`${API_BASE_URL}/status`, {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
@@ -182,10 +182,11 @@ export default function Player({ poster, fullData }) {
                         const hls = new Hls({
                             debug: isDev,
                             autoStartLoad: true,
-                            maxBufferLength: 60,
-                            maxMaxBufferLength: 120,
+                            lowLatencyMode: true,
+                            maxBufferLength: 120,
+                            maxMaxBufferLength: 180,                            
                             xhrSetup: xhr => {
-                                xhr.setRequestHeader('X-Environment', process.env.NODE_ENV);
+                                xhr.setRequestHeader('X-Environment', getEnvironmentHeader());
                             }
                         });
                         hls.on(Hls.Events.ERROR, function (event, data) {
