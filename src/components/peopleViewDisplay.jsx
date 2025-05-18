@@ -82,6 +82,7 @@ export default function PeopleViewDisplay({ data }) {
                   onLoad={() => handleImgLoad(item.Id)}
                   onError={() => handleImgError(item.Id)}
                   style={{ width: '100%', height: '100%' }}
+                  referrerPolicy="unsafe-url"
                 />
               </div>
             )}

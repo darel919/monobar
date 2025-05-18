@@ -9,6 +9,7 @@ import usePlaybackStore from "@/store/playbackStore";
 import { API_BASE_URL, getEnvironmentHeader } from "@/lib/api";
 import { getOrCreateGenSessionId } from '@/lib/genSessionId';
 import { useRouter } from 'next/navigation';
+import StatsForNerds from "./StatsForNerds";
 
 export default function Player({ poster, fullData }) {
     const artRef = useRef();
@@ -20,6 +21,7 @@ export default function Player({ poster, fullData }) {
     const id = usePlaybackStore(useCallback(state => state.id, []));
     const type = usePlaybackStore(useCallback(state => state.type, []));
     const [playbackEnded, setPlaybackEnded] = useState(false);
+    const [showStats, setShowStats] = useState(false);
 
     useEffect(() => {
         if (playbackEnded) {
@@ -115,6 +117,7 @@ export default function Player({ poster, fullData }) {
                 selectedSubtitle = subtitles.find(s => /english/i.test(s.name)) || subtitles[0];
             }
         }
+        let userQualitySelected = false;
         const art = new Artplayer({
             container: artRef.current,
             url: src,
@@ -133,14 +136,22 @@ export default function Player({ poster, fullData }) {
             theme: '#ff0000',
             type: 'm3u8',
             autoMini: true,
+            contextmenu: [
+                {
+                    html: 'Stats for Nerds',
+                    click: function () {
+                        setShowStats((prev) => !prev);
+                    }
+                }
+            ],
             subtitle: selectedSubtitle ? {
                 url: selectedSubtitle.url,
                 type: 'vtt',
                 escape: false,
                 encoding: 'utf-8',
-            } : {},
-            settings: subtitles.length > 0 ? [
-                {
+            } : {},            
+            settings: [
+                ...(subtitles.length > 0 ? [{
                     width: 250,
                     html: 'Subtitle',
                     tooltip: selectedSubtitle?.name,
@@ -152,8 +163,8 @@ export default function Player({ poster, fullData }) {
                         setUserPreference('subtitlePref', item.name);
                         return item.html;
                     },
-                },
-            ] : [],
+                }] : [])
+            ],
             plugins: [
                 artplayerPluginHlsControl({
                     quality: {
@@ -180,7 +191,7 @@ export default function Player({ poster, fullData }) {
                     if (Hls.isSupported()) {
                         if (art.hls) art.hls.destroy();
                         const hls = new Hls({
-                            debug: isDev,
+                            // debug: isDev,
                             autoStartLoad: true,
                             lowLatencyMode: true,
                             maxBufferLength: 120,
@@ -189,9 +200,27 @@ export default function Player({ poster, fullData }) {
                                 xhr.setRequestHeader('X-Environment', getEnvironmentHeader());
                             }
                         });
+                        
                         hls.on(Hls.Events.ERROR, function (event, data) {
                             if (data.fatal) {
                                 handlePlayerError(data);
+                            }
+                        });
+                        hls.on(Hls.Events.MANIFEST_PARSED, function () {
+                            if (hls.levels && hls.levels.length > 0 && !userQualitySelected) {
+                                const qualityPref = getUserPreference('qualityPref', null);
+                                let initialLevel = hls.levels.length - 1; 
+                                if (qualityPref) {
+                                    const idx = hls.levels.findIndex(l => l.height + 'P' === qualityPref);
+                                    if (idx !== -1) initialLevel = idx;
+                                }
+                                hls.currentLevel = initialLevel;
+                                if (art.setting) {
+                                    const qualitySetting = art.setting.find(s => s.html === 'Quality');
+                                    if (qualitySetting) {
+                                        qualitySetting.tooltip = hls.levels[initialLevel].height + 'P';
+                                    }
+                                }
                             }
                         });
                         hls.loadSource(url);
@@ -277,7 +306,13 @@ export default function Player({ poster, fullData }) {
                     }, 100);
                 }
             }
-        });        const handleEnd = () => {
+        });
+
+        art.on('seeked', () => {
+            postStatus('seek', getStatusData());
+        });
+
+        const handleEnd = () => {
             try {
                 postStatus('stop', getStatusData());
                 stopStatusInterval();
@@ -303,8 +338,37 @@ export default function Player({ poster, fullData }) {
             }
         }
         art.on('error', handlePlayerError);
-        artRef.current.art = art;        return () => {
-            clearInterval(timeupdateInterval);
+        if (art.hls && art.hls.levels && art.hls.currentLevel !== undefined) {
+            const currentLevel = art.hls.levels[art.hls.currentLevel];
+            if (currentLevel && art.setting) {
+                const qualitySetting = art.setting.find(s => s.html === 'Quality');
+                if (qualitySetting) {
+                    qualitySetting.tooltip = currentLevel.height + 'P';
+                }
+            }
+        }
+        if (art.hls) {
+            art.hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
+                console.warn('Level switched:', data);
+                userQualitySelected = true;
+                const levelIdx = data.level;
+                const level = art.hls.levels[levelIdx];
+                if (level && art.setting) {
+                    const qualitySetting = art.setting.find(s => s.html === 'Quality');
+                    if (qualitySetting) {
+                        qualitySetting.tooltip = level.height + 'P';
+                    }
+                }
+                // Save user preference for quality
+                if (level && level.height) {
+                    setUserPreference('qualityPref', level.height + 'P');
+                }
+            });
+        }
+        artRef.current.art = art;        
+        return () => {
+            clearInterval(timeupdateInterval);            
+            setShowStats(false);
             if (art && typeof art.destroy === 'function') {
                 art.off('error', handlePlayerError);
                 art.off('ended', handleEnd);
@@ -316,7 +380,20 @@ export default function Player({ poster, fullData }) {
         };
     }, [src, poster, status, stopPlayback]);
 
+    const handleCloseStats = () => {
+        setShowStats(false);
+    };
+
     if (status !== 'playing') return null;
 
-    return <div ref={artRef} className="absolute w-full h-full left-0 right-0 top-0 bottom-0" />;
+    return (
+        <>
+            <div ref={artRef} className="absolute w-full h-full left-0 right-0 top-0 bottom-0" />
+            <StatsForNerds
+                visible={showStats}
+                onClose={handleCloseStats}
+                art={artRef.current?.art}
+            />
+        </>
+    );
 }

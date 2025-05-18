@@ -106,6 +106,7 @@ export default function LibraryViewDisplay({ data, viewMode }) {
                     className={`h-full w-full object-cover rounded-lg aspect-[2/3] transition-opacity duration-200 ${imgLoaded[item.Id] && !imgError[item.Id] ? 'opacity-100' : 'opacity-0'}`}
                     onLoad={() => handleImgLoad(item.Id)}
                     onError={() => handleImgError(item.Id)}
+                    referrerPolicy="unsafe-url"
                   />
                 )}
                 {imgLoaded[item.Id] && (imgError[item.Id] || !posterImgSrc) && (
@@ -147,6 +148,7 @@ export default function LibraryViewDisplay({ data, viewMode }) {
                   className={`h-full w-full object-cover rounded-lg aspect-[2/3] transition-opacity duration-200 ${imgLoaded[item.Id] && !imgError[item.Id] ? 'opacity-100' : 'opacity-0'}`}
                   onLoad={() => handleImgLoad(item.Id)}
                   onError={() => handleImgError(item.Id)}
+                  referrerPolicy="unsafe-url"
                 />
               )}
               {imgLoaded[item.Id] && (imgError[item.Id] || !item.posterPath) && (
@@ -181,6 +183,7 @@ export default function LibraryViewDisplay({ data, viewMode }) {
                   className={`h-full w-full object-cover rounded-lg aspect-[2/3] transition-opacity duration-200 ${imgLoaded[item.Id] && !imgError[item.Id] ? 'opacity-100' : 'opacity-0'}`}
                   onLoad={() => handleImgLoad(item.Id)}
                   onError={() => handleImgError(item.Id)}
+                  referrerPolicy="unsafe-url"
                 />
               )}
               {imgLoaded[item.Id] && (imgError[item.Id] || !item.ImageTags?.Primary) && (
@@ -220,6 +223,7 @@ export default function LibraryViewDisplay({ data, viewMode }) {
                 className={`w-full aspect-[2/1] object-cover rounded-lg transition-opacity duration-200 ${imgLoaded[item.Id] && !imgError[item.Id] ? 'opacity-100' : 'opacity-0'}`}
                 onLoad={() => handleImgLoad(item.Id)}
                 onError={() => handleImgError(item.Id)}
+                referrerPolicy="unsafe-url"
               />
             )}
             {imgLoaded[item.Id] && (imgError[item.Id] || !item.thumbPath) && (
