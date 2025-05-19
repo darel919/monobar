@@ -87,15 +87,19 @@ export default async function InfoPage({ searchParams }) {
       )}
 
       <section className="w-full md:w-[50vw] h-full flex flex-col pb-8 md:pb-24 mt-[50vh] md:mt-[40vh] px-8 sm:px-8 relative">
-        <section className="flex flex-col w-full h-full">
+        <section className="flex flex-col w-full h-full" title={infoData.OriginalTitle ? infoData.OriginalTitle : infoData.Name}>
           {infoData.ImageTags.Logo ? (
-            <img loading="eager" src={infoData.ImageTags.Logo} alt={infoData.Name} className="h-32 w-fit max-w-58 sm:max-w-64 md:max-w-80 object-contain pointer-events-none" />
+            <img loading="eager" src={infoData.ImageTags.Logo} alt={infoData.OriginalTitle ? infoData.OriginalTitle : infoData.Name}  className="h-32 w-fit max-w-58 sm:max-w-64 md:max-w-80 object-contain pointer-events-none" />
           ) : (
-            <h1
-              className="text-6xl font-bold mb-4"
-            >
-              {infoData.Name}
-            </h1>
+            infoData.OriginalTitle ? (
+              <h1 className="text-6xl font-bold mb-4">
+                {infoData.OriginalTitle}
+              </h1>
+            ) : (
+              <h1 className="text-6xl font-bold mb-4">
+                {infoData.Name}
+              </h1>
+            )
           )}
           <section className="flex flex-col sm:flex-row items-start sm:items-center mt-0 sm:mt-2">
             <span className="px-1" title={formatDate(infoData.PremiereDate)}>

@@ -231,9 +231,11 @@ export default function LibraryViewDisplay({ data, viewMode }) {
             )}
           </div>
           <section className="flex flex-col text-center items-center w-full">
-            <h2 className="w-full text-lg font-bold truncate">
+            {item.OriginalTitle ? <h2 className="w-full text-lg font-bold truncate">
+              {item.OriginalTitle}
+            </h2> : <h2 className="w-full text-lg font-bold truncate">
               {item.Name}
-            </h2>
+            </h2>}
             {item.ProductionYear && <p className="text-xs opacity-50">{item.ProductionYear}</p>}
           </section>
         </a>
