@@ -37,7 +37,6 @@ export default function StatsForNerds({ visible, onClose, art }) {
             if (art.hls && art.hls.levels && art.hls.currentLevel !== undefined) {
                 const level = art.hls.levels[art.hls.currentLevel];
                 if (level) {
-                    // console.log(art.hls)
                     if (level.codecs) {
                         const codecs = level.codecs.split(',');
                         codecs.forEach(c => {
@@ -101,8 +100,6 @@ export default function StatsForNerds({ visible, onClose, art }) {
                     
                 }
             }
-
-            // Format bandwidth estimate for display
             let bandwidth = '';
             if (art && art.hls && art.hls.bandwidthEstimate) {
                 const bw = art.hls.bandwidthEstimate;

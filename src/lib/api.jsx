@@ -2,9 +2,8 @@ const EXT_API_BASE_URL = process.env.NEXT_PUBLIC_EXT_API_BASE_URL;
 const API_BASE_URL = (() => {
     if (typeof window !== 'undefined') {
         const hostname = window.location.hostname;
-        if (hostname === "monobar.server.drl") {
+        if (hostname === "monobar.server.drl" || hostname === "localhost") {
             const localUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-            // console.log('Using local API base URL:', localUrl);
             return localUrl;
         }
     }
@@ -23,7 +22,6 @@ export { API_BASE_URL, getEnvironmentHeader};
 
 export async function serverFetch(endpoint, options = {}, providerId) {
     const url = `${API_BASE_URL}${endpoint}`;
-    // console.log('Making request to:', url);
     const headers = {
         'Content-Type': 'application/json',
         'User-Agent': 'dp-Monobar',
@@ -133,9 +131,13 @@ export async function updateState(genSessionId) {
     }
 }
 
-export async function searchMedia(query) {
+export async function search(query, options = {}) {
+    let url = `${API_BASE_URL}/search?q=${encodeURIComponent(query)}`;
+    if (options.includeExternal) {
+        url += `&includeRequest=true`;
+    }
     try {
-        const res = await fetch(`${API_BASE_URL}/search?q=${encodeURIComponent(query)}`, {
+        const res = await fetch(url, {
             headers: {
                 "X-Environment": getEnvironmentHeader(),
                 'User-Agent': 'dp-Monobar',
@@ -154,3 +156,47 @@ export async function searchMedia(query) {
     }
 }
 
+export async function getRequests() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/request`, {
+            headers: {
+                "X-Environment": getEnvironmentHeader(),
+                'User-Agent': 'dp-Monobar',
+                'Origin': typeof window !== 'undefined' ? window.location.origin : ''
+            }
+        });
+        if (!res.ok) {
+            throw new Error(`Failed to fetch requests (HTTP ${res.status})`);
+        }
+        return await res.json();
+    } catch (error) {
+        if (error.message === "fetch failed") {
+            throw new Error("Unable to connect to the server. Please check your internet connection.");
+        }
+        throw error;
+    }
+}
+
+export async function createRequest(mediaId, mediaType) {
+    try {
+        const res = await fetch(`${API_BASE_URL}/request`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                "X-Environment": getEnvironmentHeader(),
+                'User-Agent': 'dp-Monobar',
+                'Origin': typeof window !== 'undefined' ? window.location.origin : ''
+            },
+            body: JSON.stringify({ mediaId, mediaType })
+        });
+        if (res.status !== 201) {
+            throw new Error(`Failed to create request (HTTP ${res.status})`);
+        }
+        return true;
+    } catch (error) {
+        if (error.message === "fetch failed") {
+            throw new Error("Unable to connect to the server. Please check your internet connection.");
+        }
+        throw error;
+    }
+}

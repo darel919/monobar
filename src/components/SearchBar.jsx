@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { searchMedia } from '@/lib/api';
+import { search } from '@/lib/api';
 import Link from 'next/link';
 
 export default function SearchBar() {
@@ -33,8 +33,8 @@ export default function SearchBar() {
 
       setIsLoading(true);
       try {
-        const data = await searchMedia(searchQuery);
-        setResults(data.slice(0, 5)); // Only show first 5 results
+        const data = await search(searchQuery);
+        setResults(data.slice(0, 5));
       } catch (error) {
         console.error('Search error:', error);
       } finally {

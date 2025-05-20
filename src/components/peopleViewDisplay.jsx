@@ -61,7 +61,6 @@ export default function PeopleViewDisplay({ data }) {
     <section className="flex overflow-x-auto gap-x-4 pl-4 ">
       {data.map((item, index) => (
         <a
-          // href={`/info?id=${item.Id}&type=${item.Type}`}
           key={`${item.Id}-${index}`}
           className={`flex flex-col items-center max-w-[150px] ${itemHoverClass}`}
           title={item.Overview}

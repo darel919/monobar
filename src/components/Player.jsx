@@ -191,7 +191,7 @@ export default function Player({ poster, fullData }) {
                     if (Hls.isSupported()) {
                         if (art.hls) art.hls.destroy();
                         const hls = new Hls({
-                            // debug: isDev,
+                            debug: isDev,
                             autoStartLoad: true,
                             lowLatencyMode: true,
                             maxBufferLength: 120,
@@ -359,7 +359,6 @@ export default function Player({ poster, fullData }) {
                         qualitySetting.tooltip = level.height + 'P';
                     }
                 }
-                // Save user preference for quality
                 if (level && level.height) {
                     setUserPreference('qualityPref', level.height + 'P');
                 }

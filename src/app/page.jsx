@@ -1,5 +1,6 @@
 "use server"
 
+import React from 'react';
 import {getHome} from "@/lib/api"
 import ErrorState from "@/components/ErrorState";
 import LibraryViewDisplay from "@/components/libraryViewDisplay";
@@ -36,16 +37,26 @@ export default async function Home() {
       <h1 className="text-4xl mb-8">Home</h1>
       {homeData.length > 0 ? (
         <section>
-          {homeData.map((item, index) =>
-            item.latest.length > 0 ? (
-              <div key={index} className="">
-                <a href={`/library?id=${item.Id}`} className="hover:underline">
-                  <h2 className="text-2xl font-bold mb-4">Latest {item.Name}</h2>
-                </a>
-                <LibraryViewDisplay data={item.latest} viewMode="posterView" />
-              </div>
-            ) : null
-          )}
+          {homeData.map((item, index) => (
+            <React.Fragment key={`section-${index}`}>
+              {item.latest.length > 0 ? (
+                <div key={`latest-${index}`} className="">
+                  <a href={`/library?id=${item.Id}`} className="hover:underline">
+                    <h2 className="text-2xl font-bold mb-4">Latest {item.Name}</h2>
+                  </a>
+                  <LibraryViewDisplay data={item.latest} viewMode="posterView" />
+                </div>
+              ) : null}
+              {item.comingSoon.length > 0 ? (
+                <div key={`comingsoon-${item.comingSoon.id}`} className="mt-4" title="These titles are currently being downloaded and soon will be available in the library.">
+                  <a href="/request" className="hover:underline">
+                    <h2 className="text-2xl font-bold mb-4">Coming Soon {item.Name}</h2>
+                  </a>
+                  <LibraryViewDisplay data={item.comingSoon} viewMode="posterView_comingSoon" />
+                </div>
+              ) : null}
+            </React.Fragment>
+          ))}
         </section>
       ) : null}
     </section>
