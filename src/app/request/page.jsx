@@ -50,7 +50,7 @@ export default function RequestPage() {
   }
 
   return (
-    <section className="flex flex-col min-h-screen p-8 mt-16">
+    <section className="flex flex-col min-h-screen p-8 mt-12">
       <section className="mb-8 flex sm:flex-row flex-col items-center justify-between">
         <section>
           <h1 className="text-4xl">Media Requests</h1>
