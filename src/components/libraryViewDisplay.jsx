@@ -92,59 +92,123 @@ export default function LibraryViewDisplay({ data, viewMode }) {
   };
 
   if (responsiveViewMode === "poster grid") {
-    return (      
-    <section className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">        {data.map((item, index) => {
+    return (
+      <>
+      <section className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+        {data.map((item, index) => {
           const isComingSoon = viewMode === "posterView_comingSoon";
-          const itemId = isComingSoon ? item.id : item.Id;
+          const itemId = isComingSoon ? item.id : item.Id || item.id || index;
           const posterImgSrc = getImageSource(item, isComingSoon);
-          return (
-            <a              
-              href={isComingSoon ? undefined : `/info?id=${itemId}&type=${item.Type}`}
-              key={itemId}
-              className={`flex flex-col items-center ${itemHoverClass}`}
-              title={item.Overview || item.overview}
-            >
-              <div className="relative w-full mb-4 aspect-[2/3]">
-                {!imgLoaded[itemId] && (
-                  <div className="skeleton absolute top-0 left-0 w-full h-full rounded-lg opacity-100 transition-opacity" />
-                )}                {imgLoaded[itemId] && !imgError[itemId] && posterImgSrc && (
-                  <img
-                    loading="lazy"
-                    src={posterImgSrc}
-                    alt={item.Name || item.title}
-                    className={`h-full w-full object-cover rounded-lg aspect-[2/3] transition-opacity duration-200 ${imgLoaded[itemId] && !imgError[itemId] ? 'opacity-100' : 'opacity-0'}`}
-                    onLoad={() => handleImgLoad(itemId)}
-                    onError={() => handleImgError(itemId)}
-                    referrerPolicy="unsafe-url"
-                  />                )}
-                {imgLoaded[itemId] && (imgError[itemId] || !posterImgSrc) && (
-                  <div className="flex items-center justify-center w-full h-full bg-gray-200 rounded-lg text-xs text-gray-500">No Image</div>
-                )}
-                {isComingSoon && item.downloadInfo && (
-                  <div className="absolute bottom-0 left-0 w-full p-2 bg-black/50">
-                    <progress 
-                      className="progress progress-primary w-full h-2" 
-                      value={item.downloadInfo.size - item.downloadInfo.sizeleft} 
-                      max={item.downloadInfo.size}
-                    ></progress>
-                    <div className="text-xs text-center mt-1 text-white">
-                      {Math.round(((item.downloadInfo.size - item.downloadInfo.sizeleft) / item.downloadInfo.size) * 100)}%
+          const uniqueKey = `${itemId}-${item.Type || ''}-${index}`;
+          const isReady = item.status === 'ready' || item.status === undefined;
+          if (isReady) {
+            return (
+              <a
+                href={isComingSoon ? undefined : `/info?id=${itemId}&type=${item.Type}`}
+                key={uniqueKey}
+                className={`flex flex-col items-center ${itemHoverClass}`}
+                title={item.Overview || item.overview}
+              >
+                <div className="relative w-full mb-4 aspect-[2/3]">
+                  {!imgLoaded[itemId] && (
+                    <div className="skeleton absolute top-0 left-0 w-full h-full rounded-lg opacity-100 transition-opacity" />
+                  )}
+                  {imgLoaded[itemId] && !imgError[itemId] && posterImgSrc && (
+                    <img
+                      loading="lazy"
+                      src={posterImgSrc}
+                      alt={item.Name || item.title}
+                      className={`h-full w-full object-cover rounded-lg aspect-[2/3] transition-opacity duration-200 ${imgLoaded[itemId] && !imgError[itemId] ? 'opacity-100' : 'opacity-0'}`}
+                      onLoad={() => handleImgLoad(itemId)}
+                      onError={() => handleImgError(itemId)}
+                      referrerPolicy="unsafe-url"
+                    />
+                  )}
+                  {imgLoaded[itemId] && (imgError[itemId] || !posterImgSrc) && (
+                    <div className="flex items-center justify-center w-full h-full bg-gray-200 rounded-lg text-xs text-gray-500">No Image</div>
+                  )}
+                  {isComingSoon && item.downloadInfo && (
+                    <div className="absolute bottom-0 left-0 w-full p-2 bg-black/50">
+                      <progress
+                        className="progress progress-primary w-full h-2"
+                        value={item.downloadInfo.size - item.downloadInfo.sizeleft}
+                        max={item.downloadInfo.size}
+                      ></progress>
+                      <div className="text-xs text-center mt-1 text-white">
+                        {Math.round(((item.downloadInfo.size - item.downloadInfo.sizeleft) / item.downloadInfo.size) * 100)}%
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-              <section className="flex flex-col text-center items-center w-full">
-                <h2 className="w-full text-lg font-bold truncate">
-                  {isComingSoon ? item.title : item.Name}
-                </h2>
-                {(item.ProductionYear || item.year) && (
-                  <p className="text-xs opacity-50">{item.ProductionYear || item.year}</p>
-                )}
-              </section>
-            </a>
-          );
+                  )}
+                </div>
+                <section className="flex flex-col text-center items-center w-full">
+                  <h2 className="w-full text-lg font-bold truncate">
+                    {isComingSoon ? item.title : item.Name}
+                  </h2>
+                  {(item.ProductionYear || item.year) && (
+                    <p className="text-xs opacity-50">{item.ProductionYear || item.year}</p>
+                  )}
+                </section>
+              </a>
+            );
+          } else {
+            return (
+              <button
+                type="button"
+                key={uniqueKey}
+                className={`flex flex-col items-center ${itemHoverClass} w-full text-left bg-transparent border-0 p-0`}
+                title={item.Overview || item.overview}
+                onClick={() => { setModalItem(item); setModalOpen(true); }}
+              >
+                <div className="relative w-full mb-4 aspect-[2/3]">
+                  {!imgLoaded[itemId] && (
+                    <div className="skeleton absolute top-0 left-0 w-full h-full rounded-lg opacity-100 transition-opacity" />
+                  )}
+                  {imgLoaded[itemId] && !imgError[itemId] && posterImgSrc && (
+                    <img
+                      loading="lazy"
+                      src={posterImgSrc}
+                      alt={item.Name || item.title}
+                      className={`h-full w-full object-cover rounded-lg aspect-[2/3] transition-opacity duration-200 ${imgLoaded[itemId] && !imgError[itemId] ? 'opacity-100' : 'opacity-0'}`}
+                      onLoad={() => handleImgLoad(itemId)}
+                      onError={() => handleImgError(itemId)}
+                      referrerPolicy="unsafe-url"
+                    />
+                  )}
+                  {imgLoaded[itemId] && (imgError[itemId] || !posterImgSrc) && (
+                    <div className="flex items-center justify-center w-full h-full bg-gray-200 rounded-lg text-xs text-gray-500">No Image</div>
+                  )}
+                  {isComingSoon && item.downloadInfo && (
+                    <div className="absolute bottom-0 left-0 w-full p-2 bg-black/50">
+                      <progress
+                        className="progress progress-primary w-full h-2"
+                        value={item.downloadInfo.size - item.downloadInfo.sizeleft}
+                        max={item.downloadInfo.size}
+                      ></progress>
+                      <div className="text-xs text-center mt-1 text-white">
+                        {Math.round(((item.downloadInfo.size - item.downloadInfo.sizeleft) / item.downloadInfo.size) * 100)}%
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <section className="flex flex-col text-center items-center w-full">
+                  <h2 className="w-full text-lg font-bold truncate">
+                    {isComingSoon ? item.title : item.Name}
+                  </h2>
+                  {(item.ProductionYear || item.year) && (
+                    <p className="text-xs opacity-50">{item.ProductionYear || item.year}</p>
+                  )}
+                </section>
+              </button>
+            );
+          }
         })}
       </section>
+      <RequestModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        item={modalItem}
+      />
+      </>
     );
   }
 
@@ -195,8 +259,7 @@ export default function LibraryViewDisplay({ data, viewMode }) {
             if (isNaN(percent) || !isFinite(percent)) percent = 0;
           }
           return (
-            <a
-              // href={`/info?id=${item.Id}&type=${item.Type}`}
+            <section
               key={item.id}
               className={`flex flex-col items-center min-w-[220px] max-w-[180px] ${itemHoverClass}`}
               title={item.overview}
@@ -244,7 +307,7 @@ export default function LibraryViewDisplay({ data, viewMode }) {
                   </div>
                 )}
               </div>
-            </a>
+            </section>
           );
         })}
       </section>
