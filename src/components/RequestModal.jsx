@@ -87,17 +87,40 @@ export default function RequestModal({ open, onClose, item, cancelMode }) {
         </button>
         <h3 className="font-bold text-lg mb-4">{cancelMode ? "Cancel Request" : "Request Content"}</h3>
         <div className="flex flex-col md:flex-row items-stretch mb-8 min-h-[15rem]">
-          <div className="flex-shrink-0 flex justify-center w-full md:w-auto h-full">
-            {posterUrl && (
-              <img src={posterUrl} alt="Poster" className="h-full max-h-[20rem] w-auto object-cover rounded shadow-lg" style={{ aspectRatio: '2/3' }} />
-            )}
-            {backdropUrl && !posterUrl && (
-              <img src={backdropUrl} alt="Backdrop" className="h-full max-h-[20rem] w-auto object-cover rounded shadow-lg" />
-            )}
-          </div>
-          <div className="flex-1 min-w-0 w-full flex flex-col justify-center">
-            <h3 className="opacity-50 text-sm mb-1">{item.year || item.ProductionYear || "Unknown"}</h3>
+          {(posterUrl || backdropUrl) && (
+            <div className="flex-shrink-0 flex justify-center w-full md:w-auto h-full md:mr-8">
+              {posterUrl && (
+                <img src={posterUrl} alt="Poster" className="h-full max-h-[20rem] w-auto object-cover rounded shadow-lg" style={{ aspectRatio: '2/3' }} />
+              )}
+              {backdropUrl && !posterUrl && (
+                <img src={backdropUrl} alt="Backdrop" className="h-full max-h-[20rem] w-auto object-cover rounded shadow-lg" />
+              )}
+            </div>
+          )}
+          <div className="flex-1 min-w-0 w-full flex flex-col justify-center ">
+            {item.ratings && item.ratings.imdb ? (
+                <section className="flex items-center gap-2 opacity-50 mb-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
+                  </svg>
+                  <p className="text-sm">IMDb Rating: {item.ratings.imdb.value}</p>
+                </section>
+              ) : null}
             <h1 className="text-2xl font-bold mb-2 break-words">{item.title || item.Name}</h1>
+            <section className="flex items-center gap-2 opacity-50 mb-2">
+              {(() => {
+                const parts = [];
+                if (item.year || item.ProductionYear) parts.push(<span key="year" className="text-sm" title="Release Year">{item.year || item.ProductionYear}</span>);
+                if (item.studio) parts.push(<span key="studio" className="text-sm" title="Studio Name">{item.studio}</span>);
+                if (item.genres && item.genres.length > 0) parts.push(<span key="genres" className="text-sm" title="Genres">{item.genres.join(", ")}</span>);
+                return parts.map((part, idx) => (
+                  <React.Fragment key={idx}>
+                    {idx > 0 && <span className="mx-1">|</span>}
+                    {part}
+                  </React.Fragment>
+                ));
+              })()}
+            </section>
             <h2 className="text-sm sm:text-sm leading-[1.8] sm:leading-[1.75] text-justify break-words line-clamp-9">{item.overview || item.Overview || "No overview available."}</h2>
           </div>
         </div>

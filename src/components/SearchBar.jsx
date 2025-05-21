@@ -10,6 +10,7 @@ export default function SearchBar() {
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const searchContainerRef = useRef(null);
   const router = useRouter();
 
@@ -28,6 +29,7 @@ export default function SearchBar() {
     const fetchResults = async () => {
       if (searchQuery.trim() === '') {
         setResults([]);
+        setHasSearched(false);
         return;
       }
 
@@ -35,6 +37,7 @@ export default function SearchBar() {
       try {
         const data = await search(searchQuery);
         setResults(data.slice(0, 5));
+        setHasSearched(true);
       } catch (error) {
         console.error('Search error:', error);
       } finally {
@@ -56,7 +59,7 @@ export default function SearchBar() {
 
   return (
     <div className="relative w-full" ref={searchContainerRef}>
-      <div className="relative flex items-center w-full">
+      <div className="relative flex items-center w-full ">
         <form onSubmit={handleSubmit} className="w-full">
           <input
             type="text"
@@ -79,34 +82,43 @@ export default function SearchBar() {
       </div>
       {/* Search Results Dropdown */}
       {showResults && searchQuery.trim() !== '' && (
-        <div className="absolute w-full mt-2 bg-base-200 rounded-lg shadow-lg z-50">
+        <div className="absolute w-full mt-2 bg-base-200 rounded-lg shadow-lg z-50 ">
           {isLoading ? (
-            <div className="p-4 text-sm text-gray-400">Loading...</div>
+            <div className="p-4 text-sm text-gray-400 flex items-center gap-2">
+              <svg className="animate-spin h-4 w-4 mr-2 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+              </svg>
+              Loading...
+            </div>
           ) : results.length > 0 ? (
             <div>
               {results.map((item, index) => (
                 <Link
-                  key={item.Id}
-                  href={`/info?id=${item.Id}&type=${item.Type}`}
-                  className="block px-4 py-2 hover:bg-gray-700 text-sm"
+                  key={index}
+                  href={`/info?id=${item.id}&type=${item.type || "Movie"}`}
+                  className="block px-4 py-2 text-sm "
                   onClick={() => setShowResults(false)}
                 >
-                  {item.Name}
+                  <section className="py-1">
+                    <h2 className="text-lg ">{item.Name} {item.ProductionYear ? <span className='opacity-50'>({item.ProductionYear})</span> : null}</h2>
+                    <h2 className="text-xs truncate opacity-50">{item.Overview}</h2>
+                  </section>
                 </Link>
               ))}
               {results.length === 5 && (
                 <Link
                   href={`/search?q=${encodeURIComponent(searchQuery)}`}
-                  className="block px-4 py-2 text-sm text-blue-400 hover:bg-gray-700 border-t border-gray-700"
+                  className="block px-4 py-4 text-sm text-blue-400 hover:bg-gray-700 border-t border-gray-700"
                   onClick={() => setShowResults(false)}
                 >
                   View all results...
                 </Link>
               )}
             </div>
-          ) : (
+          ) : (!isLoading && hasSearched && searchQuery.trim() !== '') ? (
             <div className="p-4 text-sm text-gray-400">No results found</div>
-          )}
+          ) : null}
         </div>
       )}
     </div>

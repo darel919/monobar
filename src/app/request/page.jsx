@@ -88,7 +88,7 @@ export default function RequestPage() {
 
       {/* Waiting List Section */}
       <section className="mt-12">
-        <h2 className="text-3xl mb-4">Media in Waiting List</h2>
+        <h2 className="text-3xl mb-4" title="This is requested already, but we can't find it yet.">Media in Waiting List</h2>
         {waitingList?.length > 0 ? (
           <LibraryViewDisplay data={waitingList} viewMode="posterView_comingSoon" cancelMode={true} onRequestCancelled={fetchRequests} />
         ) : (
