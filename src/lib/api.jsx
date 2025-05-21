@@ -177,6 +177,28 @@ export async function getRequests() {
     }
 }
 
+// Fetch media in waiting list for /request page
+export async function getWaitingList() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/request/waitingList`, {
+            headers: {
+                "X-Environment": getEnvironmentHeader(),
+                'User-Agent': 'dp-Monobar',
+                'Origin': typeof window !== 'undefined' ? window.location.origin : ''
+            }
+        });
+        if (!res.ok) {
+            throw new Error(`Failed to fetch waiting list (HTTP ${res.status})`);
+        }
+        return await res.json();
+    } catch (error) {
+        if (error.message === "fetch failed") {
+            throw new Error("Unable to connect to the server. Please check your internet connection.");
+        }
+        throw error;
+    }
+}
+
 export async function createRequest(mediaId, mediaType) {
     try {
         const res = await fetch(`${API_BASE_URL}/request`, {
@@ -191,6 +213,28 @@ export async function createRequest(mediaId, mediaType) {
         });
         if (res.status !== 201) {
             throw new Error(`Failed to create request (HTTP ${res.status})`);
+        }
+        return true;
+    } catch (error) {
+        if (error.message === "fetch failed") {
+            throw new Error("Unable to connect to the server. Please check your internet connection.");
+        }
+        throw error;
+    }
+}
+
+export async function deleteRequest(mediaId) {
+    try {
+        const res = await fetch(`${API_BASE_URL}/request?id=${mediaId}`, {
+            method: 'DELETE',
+            headers: {
+                "X-Environment": getEnvironmentHeader(),
+                'User-Agent': 'dp-Monobar',
+                'Origin': typeof window !== 'undefined' ? window.location.origin : ''
+            }
+        });
+        if (res.status !== 202) {
+            throw new Error(`Failed to cancel request (HTTP ${res.status})`);
         }
         return true;
     } catch (error) {

@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import RequestModal from "./RequestModal";
+import { deleteRequest } from "@/lib/api";
 
-export default function LibraryViewDisplay({ data, viewMode }) {
+export default function LibraryViewDisplay({ data, viewMode, disableClick, onRequestCancelled, cancelMode, ...props }) {
   const [responsiveViewMode, setResponsiveViewMode] = useState(viewMode);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalItem, setModalItem] = useState(null);
@@ -91,6 +92,25 @@ export default function LibraryViewDisplay({ data, viewMode }) {
     return item.thumbPath;
   };
 
+  const handleItemClick = (item) => {
+    setModalItem(item);
+    setModalOpen(true);
+  };
+
+  const handleCancelRequest = async (item) => {
+    if (!item?.id && !item?.Id) return;
+    const movieId = item.id || item.Id;
+    if (window.confirm("Are you sure you want to cancel this request?")) {
+      try {
+        const res = await deleteRequest(movieId);
+        if (onRequestCancelled) onRequestCancelled();
+        setModalOpen(false);
+      } catch (err) {
+        alert(err.message || "Failed to cancel request.");
+      }
+    }
+  };
+
   if (responsiveViewMode === "poster grid") {
     return (
       <>
@@ -104,10 +124,11 @@ export default function LibraryViewDisplay({ data, viewMode }) {
           if (isReady) {
             return (
               <a
-                href={isComingSoon ? undefined : `/info?id=${itemId}&type=${item.Type}`}
+                href={isComingSoon || disableClick ? undefined : `/info?id=${itemId}&type=${item.Type}`}
                 key={uniqueKey}
                 className={`flex flex-col items-center ${itemHoverClass}`}
                 title={item.Overview || item.overview}
+                {...(!disableClick ? {} : { style: { cursor: 'default', pointerEvents: 'none' } })}
               >
                 <div className="relative w-full mb-4 aspect-[2/3]">
                   {!imgLoaded[itemId] && (
@@ -157,7 +178,8 @@ export default function LibraryViewDisplay({ data, viewMode }) {
                 key={uniqueKey}
                 className={`flex flex-col items-center ${itemHoverClass} w-full text-left bg-transparent border-0 p-0`}
                 title={item.Overview || item.overview}
-                onClick={() => { setModalItem(item); setModalOpen(true); }}
+                onClick={!disableClick ? () => handleItemClick(item) : undefined}
+                style={disableClick ? { cursor: 'default', pointerEvents: 'none' } : {}}
               >
                 <div className="relative w-full mb-4 aspect-[2/3]">
                   {!imgLoaded[itemId] && (
@@ -203,11 +225,21 @@ export default function LibraryViewDisplay({ data, viewMode }) {
           }
         })}
       </section>
-      <RequestModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        item={modalItem}
-      />
+      {viewMode === "posterView_comingSoon" && cancelMode ? (
+        <RequestModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          item={modalItem}
+          cancelMode={true}
+          onCancel={() => handleCancelRequest(modalItem)}
+        />
+      ) : (
+        <RequestModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          item={modalItem}
+        />
+      )}
       </>
     );
   }
@@ -217,10 +249,11 @@ export default function LibraryViewDisplay({ data, viewMode }) {
       <section className="flex overflow-x-auto">
         {data.map((item) => (
           <a
-            href={`/info?id=${item.Id}&type=${item.Type}`}
+            href={!disableClick ? `/info?id=${item.Id}&type=${item.Type}` : undefined}
             key={item.Id}
             className={`flex flex-col items-center min-w-[220px] max-w-[180px] ${itemHoverClass}`}
             title={item.Overview}
+            {...(!disableClick ? {} : { style: { cursor: 'default', pointerEvents: 'none' } })}
           >
             <div className="relative w-full aspect-[2/3]">
               {!imgLoaded[item.Id] && (
@@ -249,6 +282,7 @@ export default function LibraryViewDisplay({ data, viewMode }) {
 
   if (responsiveViewMode === "posterView_comingSoon") {
     return (
+      <>
       <section className="flex overflow-x-auto">
         {data.map((item) => {
           const hasWarning = item.downloadInfo && item.downloadInfo.status === "warning";
@@ -263,6 +297,8 @@ export default function LibraryViewDisplay({ data, viewMode }) {
               key={item.id}
               className={`flex flex-col items-center min-w-[220px] max-w-[180px] ${itemHoverClass}`}
               title={item.overview}
+              style={!disableClick ? { cursor: 'pointer' } : { cursor: 'default', pointerEvents: 'none' }}
+              onClick={!disableClick ? () => handleItemClick(item) : undefined}
             >
               <div className="relative w-full aspect-[2/3]">
                 {!imgLoaded[item.id] && (
@@ -311,6 +347,16 @@ export default function LibraryViewDisplay({ data, viewMode }) {
           );
         })}
       </section>
+      {cancelMode && (
+        <RequestModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          item={modalItem}
+          cancelMode={true}
+          onCancel={() => handleCancelRequest(modalItem)}
+        />
+      )}
+      </>
     );
   }
 
@@ -319,10 +365,11 @@ export default function LibraryViewDisplay({ data, viewMode }) {
       <section className="flex overflow-x-auto py-4">
         {data.map((item) => (
           <a
-            href={`/info?id=${item.Id}&type=${item.Type}`}
+            href={!disableClick ? `/info?id=${item.Id}&type=${item.Type}` : undefined}
             key={item.Id}
             className={`flex flex-col items-center min-w-[150px] max-w-[100px] ${itemHoverClass} gap-2`}
             title={item.Overview}
+            {...(!disableClick ? {} : { style: { cursor: 'default', pointerEvents: 'none' } })}
           >
             <div className="relative w-full aspect-[2/3]">
               {!imgLoaded[item.Id] && (
@@ -365,10 +412,11 @@ export default function LibraryViewDisplay({ data, viewMode }) {
             if (item.status === 'ready') {
               return (
                 <a
-                  href={`/info?id=${item.id}&type=${item.Type}`}
+                  href={!disableClick ? `/info?id=${item.id}&type=${item.Type}` : undefined}
                   key={uniqueKey}
                   className={`flex flex-col items-center ${itemHoverClass}`}
                   title={item.Overview}
+                  {...(!disableClick ? {} : { style: { cursor: 'default', pointerEvents: 'none' } })}
                 >
                   <div className="relative w-full mb-2 aspect-[2/1]">
                     {!imgLoaded[item.id] && (
@@ -408,7 +456,8 @@ export default function LibraryViewDisplay({ data, viewMode }) {
                   key={uniqueKey}
                   className={`flex flex-col items-center ${itemHoverClass} w-full text-left bg-transparent border-0 p-0`}
                   title={item.Overview}
-                  onClick={() => { setModalItem(item); setModalOpen(true); }}
+                  onClick={!disableClick ? () => handleItemClick(item) : undefined}
+                  style={disableClick ? { cursor: 'default', pointerEvents: 'none' } : {}}
                 >
                   <div className="relative w-full mb-2 aspect-[2/1]">
                     {!imgLoaded[item.id] && (
@@ -461,10 +510,11 @@ export default function LibraryViewDisplay({ data, viewMode }) {
     <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8">
       {data.map((item) => (
         <a
-          href={`/info?id=${item.Id}&type=${item.Type}`}
+          href={!disableClick ? `/info?id=${item.Id}&type=${item.Type}` : undefined}
           key={item.Id}
           className={`flex flex-col items-center ${itemHoverClass}`}
           title={item.Overview}
+          {...(!disableClick ? {} : { style: { cursor: 'default', pointerEvents: 'none' } })}
         >
           <div className="relative w-full mb-2 aspect-[2/1]">
             {!imgLoaded[item.Id] && (
