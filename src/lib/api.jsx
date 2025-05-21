@@ -156,6 +156,16 @@ export async function search(query, options = {}) {
     }
 }
 
+export async function getRecommendations() {
+    const res = await fetch(`${API_BASE_URL}/request/recommendations`, {
+        cache: 'no-store',
+    });
+    if (!res.ok) {
+        throw new Error('Failed to fetch recommendations');
+    }
+    return res.json();
+}
+
 export async function getRequests() {
     try {
         const res = await fetch(`${API_BASE_URL}/request`, {

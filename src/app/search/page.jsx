@@ -1,6 +1,6 @@
 "use server";
 
-import { search } from '@/lib/api';
+import { search, getRecommendations } from '@/lib/api';
 import LibraryViewDisplay from '@/components/libraryViewDisplay';
 
 export default async function SearchPage({ searchParams }) {
@@ -15,6 +15,13 @@ export default async function SearchPage({ searchParams }) {
     try {
       results = await search(query, { includeExternal: allowLookup });
       console.log("Search Results: ", results);
+    } catch (e) {
+      error = e.message;
+    }
+  } else if (allowLookup) {
+    try {
+      results = await getRecommendations();
+      console.log("Recommendations: ", results);
     } catch (e) {
       error = e.message;
     }
@@ -45,7 +52,7 @@ export default async function SearchPage({ searchParams }) {
               defaultChecked={allowLookup}
               className="checkbox checkbox-primary"
             />
-            <span className="text-sm sm:text-base">Include External Movie Lookup
+            <span className="text-sm sm:text-base">Online Lookup
               <span className="ml-1 text-xs text-base-content/50" title="Checking this option will include external movie lookup results. This may take longer to load.">(slower)</span>
             </span>
           </label>
@@ -56,7 +63,12 @@ export default async function SearchPage({ searchParams }) {
         {query && results.length > 0 && (
           <div className="text-base text-center mb-4 text-base-content/70">{results.length} result{results.length !== 1 ? 's' : ''} found</div>
         )}
-        {!query ? (
+        {!query && allowLookup && results.length > 0 ? (
+          <>
+            <div className="text-base text-center mb-4 text-base-content/70">Recommended for you</div>
+            <LibraryViewDisplay data={results} viewMode="default_search"/>
+          </>
+        ) : !query ? (
           <p className="text-gray-400 text-center">Please enter a search query</p>
         ) : error ? (
           <div className="text-red-500 text-center">{error}</div>

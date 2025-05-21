@@ -321,7 +321,7 @@ export default function LibraryViewDisplay({ data, viewMode, disableClick, onReq
                 {item.downloadInfo && (
                   <div className="absolute bottom-0 left-0 w-full p-2 bg-black/50">
                     <progress 
-                      className="progress progress-primary progress-bar progress-bar-striped w-full h-2" 
+                      className="progress progress-accent progress-bar progress-bar-striped w-full h-2" 
                       value={item.downloadInfo.size - item.downloadInfo.sizeleft} 
                       max={item.downloadInfo.size}
                     ></progress>
