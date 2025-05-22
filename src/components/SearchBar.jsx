@@ -69,6 +69,7 @@ export default function SearchBar() {
               setSearchQuery(e.target.value);
               setShowResults(true);
             }}
+            onFocus={() => setShowResults(true)}
             className="w-full h-10 px-4 py-2 bg-base-200/50 border border-transparent rounded-full focus:outline-none focus:border-primary transition-colors"
           />
         </form>
@@ -101,7 +102,7 @@ export default function SearchBar() {
                   onClick={() => setShowResults(false)}
                 >
                   <section className="py-1">
-                    <h2 className="text-lg ">{item.Name} {item.ProductionYear ? <span className='opacity-50'>({item.ProductionYear})</span> : null}</h2>
+                    <h2 className="text-lg ">{item.OriginalTitle || item.Name} {item.ProductionYear ? <span className='opacity-50'>({item.ProductionYear})</span> : null}</h2>
                     <h2 className="text-xs truncate opacity-50">{item.Overview}</h2>
                   </section>
                 </Link>

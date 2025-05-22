@@ -80,8 +80,8 @@ export default function LibraryViewDisplay({ data, viewMode, disableClick, onReq
   };
 
   const getImageSource = (item, isComingSoon = false) => {
-    if ((responsiveViewMode === "posterView_comingSoon" || isComingSoon) && item.images?.length > 0) {
-      return item.images[0].remoteUrl;
+    if ((responsiveViewMode === "posterView_comingSoon" || isComingSoon)) {
+      return item.posterPath;
     } else if (responsiveViewMode === "recommendation" || (responsiveViewMode === "poster grid" && viewMode === "recommendation")) {
       return item.ImageTags?.Primary;
     } else if (responsiveViewMode === "poster grid" || responsiveViewMode === "posterView") {
@@ -151,7 +151,7 @@ export default function LibraryViewDisplay({ data, viewMode, disableClick, onReq
                   {isComingSoon && item.downloadInfo && (
                     <div className="absolute bottom-0 left-0 w-full p-2 bg-black/50">
                       <progress
-                        className="progress progress-primary w-full h-2"
+                        className={`progress ${item.downloadInfo.status === 'warning' ? 'progress-warning animate-pulse' : 'progress-info'} progress-bar progress-bar-striped w-full h-2 bg-gray-700/40`}
                         value={item.downloadInfo.size - item.downloadInfo.sizeleft}
                         max={item.downloadInfo.size}
                       ></progress>
@@ -163,7 +163,7 @@ export default function LibraryViewDisplay({ data, viewMode, disableClick, onReq
                 </div>
                 <section className="flex flex-col text-center items-center w-full">
                   <h2 className="w-full text-lg font-bold truncate">
-                    {isComingSoon ? item.title : item.Name}
+                    {isComingSoon ? item.title : item.OriginalTitle || item.Name}
                   </h2>
                   {(item.ProductionYear || item.year) && (
                     <p className="text-xs opacity-50">{item.ProductionYear || item.year}</p>
@@ -202,7 +202,7 @@ export default function LibraryViewDisplay({ data, viewMode, disableClick, onReq
                   {isComingSoon && item.downloadInfo && (
                     <div className="absolute bottom-0 left-0 w-full p-2 bg-black/50">
                       <progress
-                        className="progress progress-primary w-full h-2"
+                        className={`progress ${item.downloadInfo.status === 'warning' ? 'progress-warning animate-pulse' : 'progress-info'} progress-bar progress-bar-striped w-full h-2 bg-gray-700/40`}
                         value={item.downloadInfo.size - item.downloadInfo.sizeleft}
                         max={item.downloadInfo.size}
                       ></progress>
@@ -307,7 +307,7 @@ export default function LibraryViewDisplay({ data, viewMode, disableClick, onReq
                 {imgLoaded[item.id] && !imgError[item.id] && item.images && (
                   <img
                     loading="lazy"
-                    src={item.images[0].remoteUrl}
+                    src={item.posterPath}
                     alt={item.title}
                     className={`h-full w-full object-cover rounded-lg aspect-[2/3] transition-opacity duration-200 ${imgLoaded[item.id] && !imgError[item.id] ? 'opacity-100' : 'opacity-0'}${hasWarning ? ' brightness-75' : ''}`}
                     onLoad={() => handleImgLoad(item.id)}
@@ -321,7 +321,7 @@ export default function LibraryViewDisplay({ data, viewMode, disableClick, onReq
                 {item.downloadInfo && (
                   <div className="absolute bottom-0 left-0 w-full p-2 bg-black/50">
                     <progress 
-                      className="progress progress-accent progress-bar progress-bar-striped w-full h-2" 
+                      className={`progress ${item.downloadInfo.status === 'warning' ? 'progress-warning animate-pulse' : 'progress-info'} progress-bar progress-bar-striped w-full h-2 bg-gray-700/40`}
                       value={item.downloadInfo.size - item.downloadInfo.sizeleft} 
                       max={item.downloadInfo.size}
                     ></progress>
@@ -392,7 +392,7 @@ export default function LibraryViewDisplay({ data, viewMode, disableClick, onReq
             </div>
             <section className="flex flex-col text-center items-center w-full">
               <h2 className="w-full text-lg font-bold truncate">
-                {item.Name}
+                {item.OriginalTitle || item.Name}
               </h2>
               {item.ProductionYear && <p className="text-xs opacity-50">{item.ProductionYear}</p>}
             </section>

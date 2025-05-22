@@ -82,9 +82,6 @@ export default function Navbar() {
                 <li>
                   <Link href="/" className='text-lg' onClick={() => document.getElementById('navbar-menu').checked = false}>Home</Link>
                 </li>
-                <li>
-                  <Link href="/request" className='text-lg' onClick={() => document.getElementById('navbar-menu').checked = false}>Request</Link>
-                </li>
                 {homeData && homeData.map((item) => (
                   <li key={item.Id}>
                     <Link 
@@ -96,6 +93,9 @@ export default function Navbar() {
                     </Link>
                   </li>
                 ))}
+                <li>
+                  <Link href="/request" className='text-lg' onClick={() => document.getElementById('navbar-menu').checked = false}>Request</Link>
+                </li>
               </ul>
             </div>
           </div>

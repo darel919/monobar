@@ -11,8 +11,10 @@ export default function RequestPage() {
   const [waitingList, setWaitingList] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const fetchRequests = useCallback(async () => {
+  const fetchRequests = useCallback(async (isManualRefresh = false) => {
+    if (isManualRefresh) setRefreshing(true);
     try {
       const [data, waiting] = await Promise.all([
         getRequests(),
@@ -25,12 +27,14 @@ export default function RequestPage() {
       setError(err.message);
     } finally {
       setLoading(false);
+      if (isManualRefresh) setRefreshing(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchRequests();
-    const interval = setInterval(fetchRequests, 10000);
+    const timerFetch = () => fetchRequests(true);
+    timerFetch();
+    const interval = setInterval(timerFetch, 10000);
     return () => clearInterval(interval);
   }, [fetchRequests]);
 
@@ -56,8 +60,8 @@ export default function RequestPage() {
 
   return (
     <section className="flex flex-col min-h-screen p-8 mt-12">
-      <section className="mb-8 flex sm:flex-row flex-col items-center justify-between">
-        <section>
+      <section className="mb-8 flex sm:flex-row flex-col items-start sm:items-center justify-between">
+        <section className="sm:mb-0 mb-4">
           <h1 className="text-4xl">Media Requests</h1>
           {requestData?.length ? (
             <p>{requestData.length} requests found.</p>
@@ -65,12 +69,39 @@ export default function RequestPage() {
             <p>No requests found.</p>
           )}
         </section>
-        <Link 
-          href="/search?allowLookup=true" 
-          className="btn btn-primary"
-        >
-          New Media Request
-        </Link>
+        <div className="flex gap-2">
+          <Link 
+            href="/search?allowLookup=true" 
+            className="btn btn-primary"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
+  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+</svg>
+
+            New Request
+          </Link>
+          <button
+            className="btn btn-primary flex items-center"
+            onClick={() => fetchRequests(true)}
+            disabled={loading || refreshing}
+            type="button"
+          >
+            {(loading || refreshing) ? (
+              <>
+                <span className="loading loading-spinner loading-xs mr-2"></span>
+                Loading
+              </>
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
+  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+</svg>
+
+                Refresh
+              </>
+            )}
+          </button>
+        </div>
       </section>
 
       {/* Request List */}
