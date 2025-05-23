@@ -18,7 +18,6 @@ export default function RequestModal({ open, onClose, item, cancelMode }) {
     } else {
       if (dialog.open) dialog.close();
     }
-    // Listen for close event to sync state
     const handleClose = () => {
       if (onClose) onClose();
       setShowConfirm(false);

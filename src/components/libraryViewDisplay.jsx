@@ -407,7 +407,6 @@ export default function LibraryViewDisplay({ data, viewMode, disableClick, onReq
       <>
         <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8">
           {data.map((item, index) => {
-            // Create a unique key using index as fallback if id is undefined
             const uniqueKey = `${item.id || item.Id || index}-${item.status || 'default'}-${index}`;
             if (item.status === 'ready') {
               return (

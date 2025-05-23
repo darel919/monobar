@@ -6,7 +6,7 @@ export default function HeroView({ items }) {
   const [current, setCurrent] = useState(0);
   const [fade, setFade] = useState(true);
   const total = items.length;
-  console.log("HeroView items: ", items);
+  // console.log("HeroView items: ", items);
 
   useEffect(() => {
     if (total < 2) return;

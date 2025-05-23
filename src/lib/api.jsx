@@ -186,8 +186,6 @@ export async function getRequests() {
         throw error;
     }
 }
-
-// Fetch media in waiting list for /request page
 export async function getWaitingList() {
     try {
         const res = await fetch(`${API_BASE_URL}/request/waitingList`, {
