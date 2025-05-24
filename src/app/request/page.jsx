@@ -81,7 +81,7 @@ export default function RequestPage() {
             New Request
           </Link>
           <button
-            className="btn btn-primary flex items-center"
+            className="btn btn-primary flex items-center text-inherit"
             onClick={() => fetchRequests(true)}
             disabled={loading || refreshing}
             type="button"

@@ -55,7 +55,7 @@ export default async function Home() {
                   <LibraryViewDisplay data={item.latest} viewMode="posterView" />
                 </div></>
               ) : null}
-              {item.comingSoon.length > 0 ? (
+              {item.comingSoon && item.comingSoon.length > 0 ? (
                 <div className="mt-4" title="These titles are currently being downloaded and soon will be available in the library.">
                   <Link href="/request" className="hover:underline">
                     <h2 className="text-2xl font-bold mb-4">Coming Soon to MoNobar</h2>

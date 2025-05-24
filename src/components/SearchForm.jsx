@@ -3,20 +3,40 @@
 import { useState, useTransition, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function SearchForm({ initialQuery = "", initialAllowLookup = false }) {
+export default function SearchForm({ initialQuery = "", initialAllowLookup = false, onlineLookupError = false }) {
   const [query, setQuery] = useState(initialQuery);
   const [allowLookup, setAllowLookup] = useState(initialAllowLookup);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
-  const [showLoading, setShowLoading] = useState(false);
+  const [showLoading, setShowLoading] = useState(false); 
+  useEffect(() => {
 
+    if (onlineLookupError === true && allowLookup === true) {
+      setAllowLookup(false);
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("allowLookup");
+      params.set("error", "lookup");
+      
+      if (query) {
+        params.set("q", query);
+      } else {
+        params.delete("q");
+      }
+
+      startTransition(() => {
+        router.replace(`/search${params.toString() ? `?${params.toString()}` : ""}`);
+      });
+    }
+  }, [onlineLookupError]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    setAllowLookup(params.get("allowLookup") === "true");
-  }, [searchParams]);
-
+    const urlAllowLookup = params.get("allowLookup") === "true";
+    if (!onlineLookupError) {
+      setAllowLookup(urlAllowLookup);
+    }
+  }, [searchParams, onlineLookupError]);
   const handleCheckbox = (e) => {
     const checked = e.target.checked;
     setAllowLookup(checked);
@@ -24,9 +44,11 @@ export default function SearchForm({ initialQuery = "", initialAllowLookup = fal
     const params = new URLSearchParams(searchParams.toString());
     if (checked) {
       params.set("allowLookup", "true");
+      params.delete("error"); 
       setShowLoading(true);
     } else {
       params.delete("allowLookup");
+      params.delete("error");
       setShowLoading(false);
     }
 
@@ -68,7 +90,7 @@ export default function SearchForm({ initialQuery = "", initialAllowLookup = fal
           />
           <span className="label-text">Online Lookup</span>
         </label>
-        <button type="submit" className="btn btn-primary w-full" disabled={isPending}>
+        <button type="submit" className="btn btn-primary w-full text-inherit" disabled={isPending}>
           {isPending ? (
             <span className="flex items-center justify-center gap-2">
               <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
