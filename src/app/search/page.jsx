@@ -15,7 +15,7 @@ export default async function SearchPage({ searchParams }) {
   if (query) {
     try {
       results = await search(query, { includeExternal: allowLookup });
-      // console.log("Search Results: ", results);
+      console.log("Search Results: ", results);
     } catch (e) {
       error = e.message;
     }

@@ -9,7 +9,7 @@ import usePlaybackStore from "@/store/playbackStore";
 import { API_BASE_URL, getEnvironmentHeader } from "@/lib/api";
 import { getOrCreateGenSessionId } from '@/lib/genSessionId';
 import { useRouter } from 'next/navigation';
-import StatsForNerds from "./StatsForNerds";
+import StatsForNerds from "./WatchPlayerStats";
 
 export default function Player({ poster, fullData }) {
     const artRef = useRef();

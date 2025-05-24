@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import usePlaybackStore from "@/store/playbackStore";
 import ErrorState from "@/components/ErrorState";
-import Player from "@/components/Player";
+import Player from "@/components/WatchPlayer";
 import { getMovieData } from "@/lib/api";
 
 export default function WatchPage() {

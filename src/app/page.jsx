@@ -6,7 +6,7 @@ import ErrorState from "@/components/ErrorState";
 import LibraryViewDisplay from "@/components/libraryViewDisplay";
 import Link from 'next/link';
 import HomeRequestList from '@/components/HomeRequestList';
-import HeroCarousel from '@/components/HeroCarousel';
+import HeroCarousel from '@/components/HomeHeroCarousel';
 
 export default async function Home() {
 

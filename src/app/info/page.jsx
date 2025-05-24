@@ -4,7 +4,7 @@ import ErrorState from "@/components/ErrorState";
 import WatchBackdropDisplay from "@/components/WatchBackdropDisplay";
 import { getMovieData } from "@/lib/api";
 import Loading from "../loading";
-import ClientPlayButton from "@/components/ClientPlayButton";
+import ClientPlayButton from "@/components/InfoClientPlayButton";
 import LibraryViewDisplay from "@/components/libraryViewDisplay";
 import PeopleViewDisplay from "@/components/peopleViewDisplay";
 
