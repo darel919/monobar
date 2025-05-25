@@ -18,7 +18,73 @@ const getEnvironmentHeader = () => {
     return 'production';
 };
 
-export { API_BASE_URL, getEnvironmentHeader};
+// Utility function to get cookies both client and server side
+const getCookieValue = async (name) => {
+    if (typeof window !== 'undefined') {
+        // Client-side: use js-cookie
+        try {
+            const Cookies = (await import('js-cookie')).default;
+            const value = Cookies.get(name);
+
+            return value;
+        } catch (error) {
+            console.warn('Error accessing client-side cookies:', error);
+            return null;
+        }
+    } else {
+        // Server-side: use Next.js cookies
+        try {
+            const { cookies } = await import('next/headers');
+            const cookieStore = await cookies();
+            const cookieObject = cookieStore.get(name);
+            const value = cookieObject?.value;
+
+            return value;
+        } catch (error) {
+            console.warn('Could not access cookies on server side:', error);
+            return null;
+        }
+    }
+};
+
+export { API_BASE_URL, getEnvironmentHeader, getCookieValue };
+
+export async function getJellyId(providerId) {
+    if (!providerId) {
+        throw new Error('Provider ID is required for Jelly authentication');
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/getJellyId`, {
+            method: 'GET',
+            headers: {
+                'Authorization': providerId,
+                'Content-Type': 'application/json',
+                'User-Agent': 'dp-Monobar',
+                'X-Environment': getEnvironmentHeader(),
+                'Origin': typeof window !== 'undefined' ? window.location.origin : ''
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => 'Unknown error');
+            throw new Error(`Failed to fetch Jelly ID (HTTP ${response.status}): ${errorText}`);
+        }
+
+        const data = await response.json();
+        
+        if (!data || typeof data !== 'object') {
+            throw new Error('Invalid response format from Jelly ID endpoint');
+        }
+
+        return data;
+    } catch (error) {
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            throw new Error('Unable to connect to Jelly authentication server. Please check your internet connection.');
+        }
+        throw error;
+    }
+}
 
 export async function serverFetch(endpoint, options = {}, providerId) {
     const url = `${API_BASE_URL}${endpoint}`;
@@ -30,18 +96,45 @@ export async function serverFetch(endpoint, options = {}, providerId) {
         ...options.headers,
     };
 
+    // Add session ID if available (client-side only)
     if (typeof window !== 'undefined') {
+
         const genSessionId = localStorage.getItem('genSessionId');
         if (genSessionId) {
             headers['X-Session-ID'] = genSessionId;
         }
+    } else {
+
     }
 
-    const response = await fetch(url, {
+    // Add Jelly authentication for non-request endpoints
+    if (!endpoint.startsWith('/request')) {
+        const jellyAccessToken = await getCookieValue('jellyAccessToken');
+        const jellyUserId = await getCookieValue('jellyUserId');
+        
+
+        if (jellyAccessToken && jellyUserId) {
+            const authHeader = `monobar_user=${jellyUserId},monobar_token=${jellyAccessToken}`;
+            headers['Authorization'] = authHeader;
+          
+        } else {
+
+        }
+    } else {
+       
+    }
+
+    
+    const fetchOptions = {
         ...options,
         cache: 'no-store',
         headers,
-    });
+    };
+    
+
+    
+    const response = await fetch(url, fetchOptions);
+
     if (!response.ok) {
         throw new Error(`API error: ${response.status} ${response.statusText}`);
     }
@@ -49,17 +142,40 @@ export async function serverFetch(endpoint, options = {}, providerId) {
 }
 
 export async function getHome() {
+    // Wait a bit if Jelly auth is still loading
+    if (typeof window !== 'undefined') {
+        const authStore = await import('@/lib/authStore').then(m => m.useAuthStore);
+        const state = authStore.getState();
+        
+        if (state.isAuthenticated && state.isJellyLoading) {
+
+            let attempts = 0;
+            while (state.isJellyLoading && attempts < 20) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+        }
+    }
+    
     return serverFetch(`/`);
 }
 
 export async function getMovieData(id, intent, providerId) {
     try {
+        const headers = {
+            "X-Environment": getEnvironmentHeader(),
+            'User-Agent': 'dp-Monobar',
+            'Origin': typeof window !== 'undefined' ? window.location.origin : ''
+        };
+
+        const jellyAccessToken = await getCookieValue('jellyAccessToken');
+        const jellyUserId = await getCookieValue('jellyUserId');
+        if (jellyAccessToken && jellyUserId) {
+            headers['Authorization'] = `monobar_user=${jellyUserId},monobar_token=${jellyAccessToken}`;
+        }
+
         const res = await fetch(`${API_BASE_URL}/watch?intent=${intent}&id=${id}`, { 
-            headers: {
-                "X-Environment": getEnvironmentHeader(),
-                'User-Agent': 'dp-Monobar',
-                'Origin': typeof window !== 'undefined' ? window.location.origin : ''
-            }
+            headers
         });
         if (!res.ok) {
             if (res.status === 404) {
@@ -81,14 +197,19 @@ export async function getTypeData(options = {}, providerId) {
     if (options.id) params.append('id', options.id);
     if (options.sortBy) params.append('sortBy', options.sortBy);
     if (options.sortOrder) params.append('sortOrder', options.sortOrder);
-    const query = params.toString();
-    try {
-        const res = await fetch(`${API_BASE_URL}/library?${query}`, { 
-            headers: {
-                "X-Environment": getEnvironmentHeader(),
-                'User-Agent': 'dp-Monobar',
-                'Origin': typeof window !== 'undefined' ? window.location.origin : ''
-            }
+    const query = params.toString();    try {        const headers = {
+            "X-Environment": getEnvironmentHeader(),
+            'User-Agent': 'dp-Monobar',
+            'Origin': typeof window !== 'undefined' ? window.location.origin : ''        };
+
+        const jellyAccessToken = await getCookieValue('jellyAccessToken');
+        const jellyUserId = await getCookieValue('jellyUserId');
+        if (jellyAccessToken && jellyUserId) {
+            headers['Authorization'] = `monobar_user=${jellyUserId},monobar_token=${jellyAccessToken}`;
+        }
+
+        const res = await fetch(`${API_BASE_URL}/library?${query}`, {
+            headers
         });
         if (!res.ok) {
             if (res.status === 404) {
@@ -109,17 +230,22 @@ export async function updateState(genSessionId) {
     if (!genSessionId) {
         console.warn("No session ID provided for updateState");
         return;
-    }
-    try {
+    }    try {        const headers = {
+            'Content-Type': 'application/json',
+            'User-Agent': 'dp-Monobar',
+            'X-Environment': getEnvironmentHeader(),
+            'X-Session-ID': genSessionId,
+            'Origin': typeof window !== 'undefined' ? window.location.origin : ''
+        };        
+        const jellyAccessToken = await getCookieValue('jellyAccessToken');
+        const jellyUserId = await getCookieValue('jellyUserId');
+        if (jellyAccessToken && jellyUserId) {
+            headers['Authorization'] = `monobar_user=${jellyUserId},monobar_token=${jellyAccessToken}`;
+        }
+
         const res = await fetch(`${API_BASE_URL}/status?playSessionId=${genSessionId}`, {
             method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'User-Agent': 'dp-Monobar',
-                'X-Environment': getEnvironmentHeader(),
-                'X-Session-ID': genSessionId,
-                'Origin': typeof window !== 'undefined' ? window.location.origin : ''
-            }
+            headers
         });
         if (!res.ok) {
             throw new Error(`Failed to update playback status (HTTP ${res.status})`);
@@ -135,14 +261,20 @@ export async function search(query, options = {}) {
     let url = `${API_BASE_URL}/search?q=${encodeURIComponent(query)}`;
     if (options.includeExternal) {
         url += `&includeRequest=true`;
-    }
-    try {
+    }    try {        const headers = {
+            "X-Environment": getEnvironmentHeader(),
+            'User-Agent': 'dp-Monobar',
+            'Origin': typeof window !== 'undefined' ? window.location.origin : ''
+        };
+
+        const jellyAccessToken = await getCookieValue('jellyAccessToken');
+        const jellyUserId = await getCookieValue('jellyUserId');
+        if (jellyAccessToken && jellyUserId) {
+            headers['Authorization'] = `monobar_user=${jellyUserId},monobar_token=${jellyAccessToken}`;
+        }
+
         const res = await fetch(url, {
-            headers: {
-                "X-Environment": getEnvironmentHeader(),
-                'User-Agent': 'dp-Monobar',
-                'Origin': typeof window !== 'undefined' ? window.location.origin : ''
-            }
+            headers
         });
         if (!res.ok) {
             throw new Error(`Failed to fetch search results (HTTP ${res.status})`);

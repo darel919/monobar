@@ -7,13 +7,15 @@ import { usePathname } from 'next/navigation';
 import usePlaybackStore from '@/store/playbackStore';
 import { getHome } from '@/lib/api';
 import SearchBar from './SearchBar';
+import { useAuthStore } from '@/lib/authStore';
+import JellyAuthWarning from './JellyAuthWarning';
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [homeData, setHomeData] = useState([]);
-  const [isHydrated, setIsHydrated] = useState(false);
-  const pathname = usePathname();
+  const [isHydrated, setIsHydrated] = useState(false);  const pathname = usePathname();
   const { id, type } = usePlaybackStore(state => state);
+  const { isAuthenticated, userSession, clearAuth, isLoading } = useAuthStore();
 
   useEffect(() => {
     setIsHydrated(true);
@@ -35,7 +37,6 @@ export default function Navbar() {
       fetchHomeData();
     }
   }, []);
-
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 0);
@@ -113,14 +114,38 @@ export default function Navbar() {
         {/* Center section - Search */}
         <div className="flex-1 px-4 max-w-3xl mx-auto">
           <SearchBar />
+        </div>        {/* Right section - Authentication */}
+        <div className="flex-none flex items-center gap-2">
+          {/* Jelly Auth Warning Button */}
+          <JellyAuthWarning />
+          
+          {isLoading ? (
+            <div className="loading loading-spinner loading-sm"></div>         
+           ) : isAuthenticated && userSession ? (
+            <div className="dropdown dropdown-end">
+              <Link href="/profile" className="btn btn-ghost btn-circle avatar">
+                <div className="w-10 rounded-full">
+                  {userSession.user?.user_metadata?.avatar_url ? (
+                    <img 
+                      alt={userSession.user?.user_metadata?.full_name || userSession.user?.email}
+                      src={userSession.user.user_metadata.avatar_url} 
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
+                      <span className="text-primary-content font-bold">
+                        {userSession.user?.user_metadata?.full_name?.[0] || userSession.user?.email?.[0]?.toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </Link>
+            </div>
+          ) : (
+            <Link href="/auth/login" className="btn btn-primary btn-sm">
+              Sign In
+            </Link>
+          )}
         </div>
-
-        {/* Right section - Account Icon */}
-        {/* <div className="flex-none">
-          <div className="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center">
-           
-          </div>
-        </div> */}
       </div>
     </div>
   );

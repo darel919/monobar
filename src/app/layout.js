@@ -5,6 +5,7 @@ import Footer from '@/components/Footer';
 import Loading from './loading';
 import ScrollToTop from "@/components/ScrollToTop";
 import SessionInitializer from '@/components/SessionInitializer';
+import AuthSessionInitializer from '@/components/AuthSessionInitializer';
 import "./globals.css";
 import Navbar from '@/components/Navbar';
 
@@ -20,6 +21,7 @@ export default function RootLayout({
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body>
         <SessionInitializer />
+        <AuthSessionInitializer />
         <Navbar/>
         <ScrollToTop />
         <Suspense fallback={<Loading />}>

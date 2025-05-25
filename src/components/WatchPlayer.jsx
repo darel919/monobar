@@ -80,18 +80,31 @@ export default function Player({ poster, fullData }) {
         } catch (error) {
             return [];
         }
-    };
-
-    function postStatus(intent, data) {
+    };    async function postStatus(intent, data) {
         const sessionId = getOrCreateGenSessionId();
         if (!sessionId) return;
+        
+        const headers = { 
+            'Content-Type': 'application/json',
+            'X-Session-ID': sessionId,
+            'X-Environment': process.env.NODE_ENV,
+        };   
+        
+        // Get Jelly auth from cookies
+        try {
+            const Cookies = (await import('js-cookie')).default;
+            const jellyAccessToken = Cookies.get('jellyAccessToken');
+            const jellyUserId = Cookies.get('jellyUserId');
+            if (jellyAccessToken && jellyUserId) {
+                headers['Authorization'] = `monobar_user=${jellyUserId},monobar_token=${jellyAccessToken}`;
+            }
+        } catch (error) {
+            console.warn('Could not access Jelly auth cookies:', error);
+        }
+
         return fetch(`${API_BASE_URL}/status`, {
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'X-Session-ID': sessionId,
-                'X-Environment': process.env.NODE_ENV,
-            },
+            headers,
             body: JSON.stringify({ 
                 intent, 
                 playSessionId: sessionId,
