@@ -1,4 +1,5 @@
-import { updateState } from '@/lib/api';
+import { API_BASE_URL, updateState } from '@/lib/api';
+import { getOrCreateGenSessionId } from '@/lib/genSessionId';
 import { create } from 'zustand';
 
 const usePlaybackStore = create((set, get) => ({
@@ -9,10 +10,11 @@ const usePlaybackStore = create((set, get) => ({
     initializePlayback: async (id, type) => {
         if(id && type) {
             try {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_PATH_URL || ''}/api/watch?intent=watch&id=${id}`, {
+                const response = await fetch(`${API_BASE_URL}/watch?intent=play&id=${id}`, {
                     method: 'GET',
                     headers: {
                         "X-Environment": process.env.NODE_ENV,
+                        "X-Session-ID": getOrCreateGenSessionId(),
                         'Origin': typeof window !== 'undefined' ? window.location.origin : ''
                     }
                 });

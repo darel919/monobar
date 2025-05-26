@@ -5,6 +5,7 @@ import LibraryViewDisplay from '@/components/libraryViewDisplay';
 import SearchForm from '@/components/SearchForm';
 import { getSearchTypeDisplayName } from '@/lib/searchUtils';
 import GenresView from '@/components/GenresView';
+import { Suspense } from 'react';
 
 export default async function SearchPage({ searchParams }) {  
   const params = await searchParams;
@@ -47,14 +48,20 @@ export default async function SearchPage({ searchParams }) {
     <div className="flex min-h-screen items-center justify-center flex-col p-4 sm:p-8 mt-16">
       <h1 className="text-3xl font-extrabold mb-8 text-center tracking-tight">
         Search{searchTypeDisplay && ` - ${searchTypeDisplay}`}
-      </h1>
-      {/* Search Form */}
+      </h1>      {/* Search Form */}
       <div className="w-full max-w-xl bg-base-200 rounded-xl shadow-lg p-6 mb-8 flex flex-col items-center">
-        <SearchForm 
-          initialQuery={initialQuery} 
-          initialAllowLookup={allowLookup} 
-          onlineLookupError={onlineLookupError}
-        />
+        <Suspense fallback={
+          <div className="flex items-center justify-center p-4">
+            <div className="loading loading-spinner loading-md"></div>
+            <span className="ml-2 text-sm text-gray-500">Loading search...</span>
+          </div>
+        }>
+          <SearchForm 
+            initialQuery={initialQuery} 
+            initialAllowLookup={allowLookup} 
+            onlineLookupError={onlineLookupError}
+          />
+        </Suspense>
       </div>{/* Results */}
       <div className="w-full max-w-6xl">
         {/* Display error message if there's an error */}

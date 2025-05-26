@@ -2,14 +2,14 @@
 
 import { useAuthStore } from "@/lib/authStore";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 
-export default function AuthPage() {
+function AuthContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { handleAuthSuccess } = useAuthStore();
   const [error, setError] = useState(null);
-  const [processing, setProcessing] = useState(true);  
+  const [processing, setProcessing] = useState(true);
   async function handleAuth() {
     try {
       const accessToken = searchParams.get("at");
@@ -86,8 +86,7 @@ export default function AuthPage() {
   useEffect(() => {
     handleAuth();
   }, []);
-  
-  return (
+    return (
     <div className="flex min-h-screen flex-col items-center justify-center p-8 font-mono">
       <div className="mt-4 text-center">
         {processing && !error ? (
@@ -105,5 +104,22 @@ export default function AuthPage() {
         ) : null}
       </div>
     </div>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen flex-col items-center justify-center p-8 font-mono">
+        <div className="mt-4 text-center">
+          <section className="flex flex-col items-center justify-center">
+            <span className="loading loading-spinner loading-lg mb-4"></span>
+            <h1 className="font-bold text-4xl mt-8">Loading authentication...</h1>
+          </section>
+        </div>
+      </div>
+    }>
+      <AuthContent />
+    </Suspense>
   );
 }

@@ -24,7 +24,15 @@ export default function RootLayout({
         <ThemeInitializer />
         <SessionInitializer />
         <AuthSessionInitializer />
-        <Navbar/>
+        <Suspense fallback={
+          <div className="navbar bg-base-100 shadow-lg fixed top-0 left-0 right-0 z-50">
+            <div className="flex-1">
+              <span className="btn btn-ghost text-xl">Monobar</span>
+            </div>
+          </div>
+        }>
+          <Navbar/>
+        </Suspense>
         <ScrollToTop />
         <Suspense fallback={<Loading />}>
           {children}
