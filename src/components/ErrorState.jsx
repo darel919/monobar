@@ -37,7 +37,7 @@ export default function ErrorState({ message, actionText = "Return to Home", act
           {errorCode && <p className="mt-2 text-sm text-red-500">Stop reason: <b>{errorCode}</b></p>}
         </div>
       </div>
-      <button onClick={handleAction} className="btn text-[var(--color-text)] btn-primary hover:bg-secondary rounded-4xl p-4 mt-4 sm:mt-6">
+      <button onClick={handleAction} className="btn text-[var(--color-text)] btn-primary hover:bg-base-200 rounded-4xl p-4 mt-4 sm:mt-6">
         {actionText}
       </button>
     </section>

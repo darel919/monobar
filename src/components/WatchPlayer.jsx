@@ -11,15 +11,13 @@ import { getOrCreateGenSessionId } from '@/lib/genSessionId';
 import { useRouter } from 'next/navigation';
 import StatsForNerds from "./WatchPlayerStats";
 
-export default function Player({ poster, fullData }) {
+export default function Player({ poster, fullData, id, type }) {
     const artRef = useRef();
     const router = useRouter();
     const isDev = process.env.NODE_ENV === 'development';
     const stopPlayback = usePlaybackStore(useCallback(state => state.stopPlayback, []));
     const status = usePlaybackStore(useCallback(state => state.status, []));
     const src = usePlaybackStore(useCallback(state => state.src, []));
-    const id = usePlaybackStore(useCallback(state => state.id, []));
-    const type = usePlaybackStore(useCallback(state => state.type, []));
     const [playbackEnded, setPlaybackEnded] = useState(false);
     const [showStats, setShowStats] = useState(false);
 

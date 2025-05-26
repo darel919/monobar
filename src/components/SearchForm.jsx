@@ -223,7 +223,7 @@ export default function SearchForm({ initialQuery = "", initialAllowLookup = fal
       <div className="relative flex items-center w-full">
         {activePrefix && (
           <div className="absolute left-2 flex items-center gap-1 z-10">
-            <div className="bg-secondary px-4 py-1 rounded-none text-sm flex items-center gap-2 shadow-sm">
+            <div className="bg-base-200 px-4 py-1 rounded-none text-sm flex items-center gap-2 shadow-sm">
               {activePrefix}
             </div>
           </div>

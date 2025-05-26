@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import usePlaybackStore from "@/store/playbackStore";
 import { useRouter } from "next/navigation";
 import { getOrCreateGenSessionId } from '@/lib/genSessionId';
 import { getEnvironmentHeader } from '@/lib/api';
@@ -10,7 +9,6 @@ export default function ClientPlayButton({ id, type, playUrl }) {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [playbackData, setPlaybackData] = useState(null);
-    const initializePlayback = usePlaybackStore(state => state.initializePlayback);
     const router = useRouter();
 
     useEffect(() => {
@@ -90,13 +88,11 @@ export default function ClientPlayButton({ id, type, playUrl }) {
 
     const handleCantPlay = () => {
         alert("Cannot play this title. Please try another title.");
-    }
-
+    }    
     const handlePlay = () => {
         setIsLoading(true);
         if (playbackData) {
-            initializePlayback(id, type, playbackData.playbackUrl);
-            router.push('/watch');
+            router.push(`/watch?id=${id}&type=${type}`);
         }
     };
 

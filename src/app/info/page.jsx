@@ -73,19 +73,19 @@ export default async function InfoPage({ searchParams }) {
       year: "numeric"
     });
   }
-
   return (
-    <div className="min-h-screen flex flex-col justify-start text-white relative">
+    <>
       {infoData.BackdropImageTags && (
         infoData.RemoteTrailers && infoData.RemoteTrailers[0] ? (
           <>
-          <WatchBackdropDisplay backdrop={infoData.BackdropImageTags} src={infoData.RemoteTrailers[0].Url} playTrailer={isDev ? false : true} className="fixed inset-0 -z-10" title={infoData.OriginalTitle} />
-          <div className="absolute inset-0 -z-5 bg-gradient-to-b from-transparent from-[0%] via-black/85 via-[65%] to-transparent to-[200%] md:from-[15%] md:via-[65%] md:to-[175%]" /> 
+          <WatchBackdropDisplay backdrop={infoData.BackdropImageTags} src={infoData.RemoteTrailers[0].Url} playTrailer={true} className="fixed inset-0 z-0" title={infoData.OriginalTitle} />
+          <div className="fixed inset-0 z-5 bg-gradient-to-b from-transparent from-[0%] via-black/85 via-[65%] to-transparent to-[200%] md:from-[15%] md:via-[65%] md:to-[175%] pointer-events-none" /> 
           </>
         ) : (
-          <WatchBackdropDisplay backdrop={infoData.BackdropImageTags} className="fixed inset-0 -z-10" />
+          <WatchBackdropDisplay backdrop={infoData.BackdropImageTags} className="fixed inset-0 z-0" />
         )
       )}
+      <div className="min-h-screen flex flex-col justify-start text-white relative z-10">
 
       <section className="w-full md:w-[50vw] h-full flex flex-col pb-8 md:pb-24 mt-[50vh] md:mt-[40vh] px-8 sm:px-8 relative">
         <section className="flex flex-col w-full h-full" title={infoData.OriginalTitle ? infoData.OriginalTitle : infoData.Name}>
@@ -180,8 +180,8 @@ export default async function InfoPage({ searchParams }) {
         <section className="px-8 my-4">
         <p className="font-bold w-fit p-2 text-white">Similar to {infoData.Name}</p>
           <LibraryViewDisplay data={infoData.recommendation} viewMode="recommendation" />
-        </section>
-      )}
+        </section>      )}
     </div>
+    </>
   );
 }

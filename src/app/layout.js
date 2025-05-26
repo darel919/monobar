@@ -6,6 +6,7 @@ import Loading from './loading';
 import ScrollToTop from "@/components/ScrollToTop";
 import SessionInitializer from '@/components/SessionInitializer';
 import AuthSessionInitializer from '@/components/AuthSessionInitializer';
+import ThemeInitializer from '@/components/ThemeInitializer';
 import "./globals.css";
 import Navbar from '@/components/Navbar';
 
@@ -19,7 +20,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
-      <body>
+      <body className="bg-base-100 text-base-content min-h-screen">
+        <ThemeInitializer />
         <SessionInitializer />
         <AuthSessionInitializer />
         <Navbar/>

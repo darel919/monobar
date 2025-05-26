@@ -1,0 +1,250 @@
+"use client";
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
+export default function SettingsPage() {
+    const router = useRouter();
+    const [settings, setSettings] = useState({
+        playTrailersAutomatically: true,
+        theme: 'system' // 'system', 'dark', 'light'
+    });
+    const [isLoaded, setIsLoaded] = useState(false);
+
+    // Load settings from localStorage on component mount
+    useEffect(() => {
+        const savedSettings = {
+            playTrailersAutomatically: localStorage.getItem('playTrailersAutomatically') !== 'false',
+            theme: localStorage.getItem('theme') || 'system'
+        };
+        setSettings(savedSettings);
+        setIsLoaded(true);
+    }, []);    // Apply theme changes immediately
+    useEffect(() => {
+        if (!isLoaded) return;
+        
+        const html = document.documentElement;          
+        const applyTheme = (theme) => {
+            console.log('Settings: Applying theme:', theme);
+            if (theme === 'system') {
+                html.removeAttribute('data-theme');
+                // Check system preference and apply accordingly
+                if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    html.setAttribute('data-theme', 'dark');
+                    console.log('Settings: Applied mydark theme (system preference)');
+                } else {
+                    html.setAttribute('data-theme', 'light');
+                    console.log('Settings: Applied dwsLight theme (system preference)');
+                }
+            } else if (theme === 'dark') {
+                html.setAttribute('data-theme', 'dark');
+                console.log('Settings: Applied mydark theme');
+            } else if (theme === 'light') {
+                html.setAttribute('data-theme', 'light');
+                console.log('Settings: Applied dwsLight theme');
+            } else {
+                html.setAttribute('data-theme', theme);
+                console.log('Settings: Applied theme:', theme);
+            }
+              // Debug: Check computed styles
+            setTimeout(() => {
+                const computedStyle = getComputedStyle(document.body);
+                const rootStyle = getComputedStyle(document.documentElement);
+                console.log('Settings: Body background color:', computedStyle.backgroundColor);
+                console.log('Settings: Data theme attribute:', html.getAttribute('data-theme'));
+                console.log('Settings: --b1 CSS variable:', rootStyle.getPropertyValue('--b1'));
+                console.log('Settings: --b2 CSS variable:', rootStyle.getPropertyValue('--b2'));
+                console.log('Settings: --b3 CSS variable:', rootStyle.getPropertyValue('--b3'));
+                console.log('Settings: All CSS variables on :root:');
+                const allVars = {};
+                for (let i = 0; i < rootStyle.length; i++) {
+                    const property = rootStyle.item(i);
+                    if (property.startsWith('--')) {
+                        allVars[property] = rootStyle.getPropertyValue(property);
+                    }
+                }
+                console.log(allVars);
+            }, 100);
+        };
+
+        applyTheme(settings.theme);
+        localStorage.setItem('theme', settings.theme);
+    }, [settings.theme, isLoaded]);
+
+    // Save trailer setting to localStorage
+    useEffect(() => {
+        if (!isLoaded) return;
+        localStorage.setItem('playTrailersAutomatically', settings.playTrailersAutomatically.toString());
+    }, [settings.playTrailersAutomatically, isLoaded]);
+
+    const handleTrailerToggle = () => {
+        setSettings(prev => ({
+            ...prev,
+            playTrailersAutomatically: !prev.playTrailersAutomatically
+        }));
+    };
+
+    const handleThemeChange = (newTheme) => {
+        setSettings(prev => ({
+            ...prev,
+            theme: newTheme
+        }));
+    };
+
+    if (!isLoaded) {
+        return (
+            <div className="min-h-screen pt-20 pb-16 px-4 sm:px-6 lg:px-8">
+                <div className="max-w-4xl mx-auto">
+                    <div className="loading loading-spinner loading-lg mx-auto block"></div>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen p-8 mt-16">
+            <div className="max-w-4xl mx-auto">
+                {/* Header */}
+                <div className="mb-8">
+                    <button 
+                        onClick={() => router.back()}
+                        className="btn btn-ghost btn-sm mb-4 pl-0"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                        </svg>
+                        Back
+                    </button>
+                    <h1 className="text-4xl font-bold mb-2">Settings</h1>
+                    <p className="text-base-content/70">Customize your MoNobar experience</p>
+                </div>
+
+                <div className="space-y-6">
+                    {/* Playback Settings */}
+                    <div className="card bg-base-200 shadow-xl">
+                        <div className="card-body">
+                            <h2 className="card-title text-2xl mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
+                                </svg>
+                                Playback
+                            </h2>
+                            
+                            {/* Play Trailers Automatically */}
+                            <div className="form-control">
+                                <label className="label cursor-pointer justify-start gap-4 flex flex-row items-start">
+                                    <input 
+                                        type="checkbox" 
+                                        className="toggle toggle-primary mt-1" 
+                                        checked={settings.playTrailersAutomatically}
+                                        onChange={handleTrailerToggle}
+                                    />
+                                    <div className="flex flex-col">
+                                        <span className="label-text text-lg font-medium">Play Trailers Automatically</span>
+                                        <p className="text-sm text-base-content/60 mt-1 whitespace-normal leading-snug">
+                                            When enabled, trailers will automatically play on movie/show info pages
+                                        </p>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Appearance Settings */}
+                    <div className="card bg-base-200 shadow-xl">
+                        <div className="card-body">
+                            <h2 className="card-title text-2xl mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12a7.5 7.5 0 0 0 15 0m-15 0a7.5 7.5 0 1 1 15 0m-15 0H3m16.5 0H21m-1.5 0H12m-8.457 3.077 1.41-.513m14.095-5.13 1.41-.513M5.106 17.785l1.15-.964m11.49-9.642 1.149-.964M7.501 19.795l.75-1.3m7.5-12.99.75-1.3m-6.063 16.658.26-1.477m2.605-14.772.26-1.477m0 17.726-.26-1.477M10.698 4.614l-.26-1.477M16.5 19.794l-.75-1.299M7.5 4.205 12 12m6.894 5.785-1.149-.964M6.256 7.178l-1.15-.964m15.352 8.864-1.41-.513M4.954 9.435l-1.41-.514M12.002 12l-3.75 6.495" />
+                                </svg>
+                                Appearance
+                            </h2>
+                            
+                            {/* Theme Selection */}
+                            <div className="form-control">
+                                <div className="label">
+                                    <span className="label-text text-lg font-medium">Theme</span>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <label className="label cursor-pointer justify-start gap-3 p-4 rounded-lg border border-base-300 hover:bg-base-300 transition-colors flex flex-row items-start">
+                                        <input 
+                                            type="radio" 
+                                            name="theme" 
+                                            className="radio radio-primary mt-1" 
+                                            checked={settings.theme === 'system'}
+                                            onChange={() => handleThemeChange('system')}
+                                        />
+                                        <div className="flex flex-col">
+                                            <span className="label-text font-medium">Default (Follow System)</span>
+                                            <p className="text-sm whitespace-normal leading-snug">Automatically match your device settings</p>
+                                        </div>
+                                    </label>
+                                    <label className="label cursor-pointer justify-start gap-3 p-4 rounded-lg border border-base-300 hover:bg-base-300 transition-colors flex flex-row items-start">
+                                        <input 
+                                            type="radio" 
+                                            name="theme" 
+                                            className="radio radio-primary mt-1" 
+                                            checked={settings.theme === 'dark'}
+                                            onChange={() => handleThemeChange('dark')}
+                                        />
+                                        <div className="flex flex-col">
+                                            <span className="label-text font-medium">Dark</span>
+                                            <p className="text-sm whitespace-normal leading-snug">Dark theme for low-light environments</p>
+                                        </div>
+                                    </label>
+                                    <label className="label cursor-pointer justify-start gap-3 p-4 rounded-lg border border-base-300 hover:bg-base-300 transition-colors flex flex-row items-start">
+                                        <input 
+                                            type="radio" 
+                                            name="theme" 
+                                            className="radio radio-primary mt-1" 
+                                            checked={settings.theme === 'light'}
+                                            onChange={() => handleThemeChange('light')}
+                                        />
+                                        <div className="flex flex-col">
+                                            <span className="label-text font-medium">Light</span>
+                                            <p className="text-sm whitespace-normal leading-snug">Light theme for bright environments</p>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Reset Settings */}
+                    <div className="card bg-base-200 shadow-xl">
+                        <div className="card-body">
+                            <h2 className="card-title text-2xl mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                </svg>
+                                Reset
+                            </h2>
+                            
+                            <div className="flex flex-col sm:flex-row gap-4 items-start">
+                                <button 
+                                    className="btn btn-outline btn-warning"
+                                    onClick={() => {
+                                        if (confirm('Are you sure you want to reset all settings to default?')) {
+                                            localStorage.removeItem('playTrailersAutomatically');
+                                            localStorage.removeItem('theme');
+                                            setSettings({
+                                                playTrailersAutomatically: true,
+                                                theme: 'system'
+                                            });
+                                            document.documentElement.removeAttribute('data-theme');
+                                        }
+                                    }}
+                                >
+                                    Reset All Settings
+                                </button>
+                                <p className="text-sm text-base-content/60">
+                                    This will restore all settings to their default values.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}

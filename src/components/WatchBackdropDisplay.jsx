@@ -6,10 +6,22 @@ export default function WatchBackdropDisplay({ backdrop, src, className, playTra
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [videoEnded, setVideoEnded] = useState(false);
   const [isInViewport, setIsInViewport] = useState(false);
+  const [shouldPlayTrailer, setShouldPlayTrailer] = useState(false);
   const videoId = src?.replace("https://www.youtube.com/watch?v=", "") || '';
   const iframeRef = useRef(null);
   const playerRef = useRef(null);
   const containerRef = useRef(null);
+  
+  useEffect(() => {
+    const isDev = process.env.NODE_ENV === 'development';
+    if (isDev) {
+      setShouldPlayTrailer(false);
+      return;
+    }
+    
+    const playTrailersAutomatically = localStorage.getItem('playTrailersAutomatically');
+    setShouldPlayTrailer(playTrailersAutomatically === 'true' && playTrailer);
+  }, [playTrailer]);
   
   useEffect(() => {
     const tag = document.createElement('script');
@@ -53,9 +65,8 @@ export default function WatchBackdropDisplay({ backdrop, src, className, playTra
       }
     };
   }, [videoEnded]);
-  
-  useEffect(() => {
-    if (!videoId || videoEnded || !isInViewport || !playTrailer) return;
+    useEffect(() => {
+    if (!videoId || videoEnded || !isInViewport || !shouldPlayTrailer) return;
     
     const checkYTApiAndCreatePlayer = () => {
       if (window.YT && window.YT.Player && iframeRef.current) {
@@ -85,9 +96,8 @@ export default function WatchBackdropDisplay({ backdrop, src, className, playTra
       if (playerRef.current && playerRef.current.destroy) {
         playerRef.current.destroy();
         playerRef.current = null;
-      }
-    };
-  }, [videoId, videoEnded, isInViewport, playTrailer]);
+      }    };
+  }, [videoId, videoEnded, isInViewport, shouldPlayTrailer]);
   
   return (
     <div 
@@ -98,11 +108,11 @@ export default function WatchBackdropDisplay({ backdrop, src, className, playTra
         src={backdrop}
         loading="eager"
         alt="Backdrop"
-        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${!videoLoaded || videoEnded || !isInViewport || !playTrailer ? 'opacity-100' : 'opacity-0'}`}
+        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${!videoLoaded || videoEnded || !isInViewport || !shouldPlayTrailer ? 'opacity-100' : 'opacity-0'}`}
         style={{ width: '100%', height: '100%' }}
       />
       
-      {videoId && !videoEnded && isInViewport && playTrailer && (
+      {videoId && !videoEnded && isInViewport && shouldPlayTrailer && (
         <div 
           className={`absolute inset-0 w-full h-full transition-opacity duration-700 ${videoLoaded ? 'opacity-100' : 'opacity-0'}`}
           style={{ width: '100%', height: '100%' }}

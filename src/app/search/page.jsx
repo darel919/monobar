@@ -44,7 +44,7 @@ export default async function SearchPage({ searchParams }) {
 
   const searchTypeDisplay = type ? getSearchTypeDisplayName(type) : null;
   return (
-    <div className="flex min-h-screen items-center justify-center flex-col p-4 sm:p-8 mt-12">
+    <div className="flex min-h-screen items-center justify-center flex-col p-4 sm:p-8 mt-16">
       <h1 className="text-3xl font-extrabold mb-8 text-center tracking-tight">
         Search{searchTypeDisplay && ` - ${searchTypeDisplay}`}
       </h1>

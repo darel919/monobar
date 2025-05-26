@@ -9,7 +9,7 @@ export default async function Footer() {
     const appBuildDate = versionData.buildDate || "N/A";
 
     return (
-        <footer className="footer sm:footer-horizontal bg-neutral text-neutral-content p-8 flex flex-col border-secondary border-t">
+        <footer className="footer sm:footer-horizontal bg-black text-white p-8 flex flex-col border-base-200 border-t relative z-20">
             <Link href="/" className="flex items-center">
                 <img src="/favicon.ico" alt="darel's Projects" className="w-12 h-12 rounded-full" />
                 <section className='ml-2'>

@@ -66,7 +66,7 @@ export default function Home() {
 
     return (
         <>
-            <section className="flex flex-col min-h-screen p-8 mt-12">
+            <section className="flex flex-col min-h-screen px-8 pb-8 pt-4 mt-16">
                 <h1 className="text-4xl mb-8">Home</h1>
                 {homeData.length > 0 ? (
                     <section>

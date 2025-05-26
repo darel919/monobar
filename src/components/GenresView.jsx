@@ -40,7 +40,7 @@ export default function GenresView() {
 
   if (!genresData?.length) {
     return (
-      <section className="flex flex-col min-h-screen p-8 mt-12">
+      <section className="flex flex-col min-h-screen p-8 mt-16">
         <h1 className="text-4xl mb-8">Genres</h1>
         <p>No genres available at the moment.</p>
       </section>
@@ -48,7 +48,7 @@ export default function GenresView() {
   }
 
   return (
-    <section className="flex flex-col min-h-screen p-8 mt-12">
+    <section className="flex flex-col min-h-screen p-8 mt-16">
       <section className="mb-8">
         <h1 className="text-4xl">Browse by Genre</h1>
         <p>{genresData.length} genres available.</p>

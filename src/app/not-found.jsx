@@ -14,7 +14,7 @@ export default function NotFound() {
         </div>
       </div>
       
-      <div className="mt-6 sm:mt-12">
+      <div className="mt-6 sm:mt-16">
         <Link href="/" className="btn btn-primary rounded-4xl p-4">
           Home
         </Link>

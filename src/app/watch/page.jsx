@@ -1,25 +1,31 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import usePlaybackStore from "@/store/playbackStore";
 import ErrorState from "@/components/ErrorState";
 import Player from "@/components/WatchPlayer";
 import { getMovieData } from "@/lib/api";
 
-export default function WatchPage() {
-    const id = usePlaybackStore(useCallback(state => state.id, []));
-    const type = usePlaybackStore(useCallback(state => state.type, []));
+export default function WatchPage() {    
+    const searchParams = useSearchParams();
+    const id = searchParams.get('id');
+    const type = searchParams.get('type');
     const status = usePlaybackStore(useCallback(state => state.status, []));
     const error = usePlaybackStore(useCallback(state => state.error, []));
+    const initializePlayback = usePlaybackStore(state => state.initializePlayback);
     
     const [watchData, setWatchData] = useState(null);
     const [fetchError, setFetchError] = useState(null);
     const isDev = process.env.NODE_ENV === "development";
 
-
     useEffect(() => {
         async function fetchData() {
             if (!id || !type) return;
+            
+            // Initialize playback
+            await initializePlayback(id, type);
+            
             try {
                 const data = await getMovieData(id, "info");
                 if (!data) {
@@ -40,7 +46,7 @@ export default function WatchPage() {
         }
 
         fetchData();
-    }, [id, type]);
+    }, [id, type, initializePlayback]);
 
     if (!id || !type) {
         return (
@@ -74,9 +80,7 @@ export default function WatchPage() {
                 action="back"
             />
         );
-    }
-
-    return (
+    }    return (
         <section className="min-h-screen pt-20 pb-16">
             <Player poster={watchData?.BackdropImageTags} id={id} type={type} fullData={watchData}/>
         </section>

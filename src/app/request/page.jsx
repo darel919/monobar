@@ -59,7 +59,7 @@ export default function RequestPage() {
   }
 
   return (
-    <section className="flex flex-col min-h-screen p-8 mt-12">
+    <section className="flex flex-col min-h-screen p-8 mt-16">
       <section className="mb-8 flex sm:flex-row flex-col items-start sm:items-center justify-between">
         <section className="sm:mb-0 mb-4">
           <h1 className="text-4xl">Media Requests</h1>
@@ -118,7 +118,7 @@ export default function RequestPage() {
       )}
 
       {/* Waiting List Section */}
-      <section className="mt-12">
+      <section className="mt-16">
         <h2 className="text-3xl mb-4" title="This is requested already, but we can't find it yet.">Media in Waiting List</h2>
         {waitingList?.length > 0 ? (
           <LibraryViewDisplay data={waitingList} viewMode="posterView_comingSoon" cancelMode={true} onRequestCancelled={fetchRequests} />
