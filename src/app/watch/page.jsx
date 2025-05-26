@@ -31,7 +31,7 @@ export default function WatchPage() {
                         console.log("Watch Data: ", data);
                     }
                     setFetchError(null);
-                    document.title = `WATCHING: ${data.Name} - MoNobar by DWS`;
+                    document.title = `WATCHING: ${data.Name} - MoNobar`;
                 }
             } catch (err) {
                 setFetchError(err.message);

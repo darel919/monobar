@@ -7,7 +7,7 @@ export default function RequestModal({ open, onClose, item, cancelMode }) {
   const dialogRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [buttonState, setButtonState] = useState("idle"); // idle | loading | error
+  const [buttonState, setButtonState] = useState("idle"); 
   const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {

@@ -89,8 +89,7 @@ export default function Player({ poster, fullData }) {
             'X-Session-ID': sessionId,
             'X-Environment': process.env.NODE_ENV,
         };   
-        
-        // Get Jelly auth from cookies
+
         try {
             const Cookies = (await import('js-cookie')).default;
             const jellyAccessToken = Cookies.get('jellyAccessToken');

@@ -25,7 +25,7 @@ export function openLoginWindow(currentPath, onAuthCancelled) {
     if (authDetected) return;
     
     try {
-      // Check multiple indicators of successful auth
+
       const isAuthenticated = useAuthStore.getState().isAuthenticated;
       const authSuccessFlag = localStorage.getItem('authSuccess') === 'true';
       const userSessionExists = localStorage.getItem('user-session');
@@ -36,7 +36,6 @@ export function openLoginWindow(currentPath, onAuthCancelled) {
         console.log('Auth detected via store state');
         clearInterval(checkWindowClosed);
         authDetected = true;
-        // Redirect after successful authentication
         const redirectPath = localStorage.getItem("redirectAfterAuth") || "/";
         localStorage.removeItem("redirectAfterAuth");
         window.location.href = redirectPath;
@@ -48,7 +47,7 @@ export function openLoginWindow(currentPath, onAuthCancelled) {
         localStorage.removeItem('authSuccess');
         clearInterval(checkWindowClosed);
         authDetected = true;
-        // Trigger auth store check and wait a moment
+
         useAuthStore.getState().checkAuthStatus();
         setTimeout(() => {
           const redirectPath = localStorage.getItem("redirectAfterAuth") || "/";
@@ -61,8 +60,7 @@ export function openLoginWindow(currentPath, onAuthCancelled) {
       if (loginWindow.closed) {
         console.log('Login window closed, performing final auth check');
         clearInterval(checkWindowClosed);
-        
-        // Give a moment for any final auth processing
+
         setTimeout(() => {
           const finalAuthCheck = useAuthStore.getState().isAuthenticated;
           const finalStorageCheck = localStorage.getItem('authSuccess') === 'true';
@@ -73,9 +71,9 @@ export function openLoginWindow(currentPath, onAuthCancelled) {
           if (finalAuthCheck || finalStorageCheck || finalUserSession) {
             localStorage.removeItem('authSuccess');
             authDetected = true;
-            // Force auth state refresh
+
             useAuthStore.getState().checkAuthStatus();
-            // Redirect after successful authentication
+
             const redirectPath = localStorage.getItem("redirectAfterAuth") || "/";
             localStorage.removeItem("redirectAfterAuth");
             window.location.href = redirectPath;          

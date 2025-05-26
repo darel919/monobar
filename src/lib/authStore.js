@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import Cookies from 'js-cookie';
 import { getJellyId } from './api';
+import { setCrossDomainCookie, removeCrossDomainCookie } from './cookieUtils';
 
 export const useAuthStore = create(
   persist(
@@ -27,21 +28,17 @@ export const useAuthStore = create(
         
         try {
           set({ isJellyLoading: true, jellyAuthFailed: false, jellyAuthError: null });
-          const data = await getJellyId(providerId);
-            if (data && data.access_token && data.userId) {
-            // Store in cookies for server-side access
-            const isSecureContext = typeof window !== 'undefined' && window.location.protocol === 'https:';
-            Cookies.set('jellyAccessToken', data.access_token, {
+          const data = await getJellyId(providerId);          if (data && data.access_token && data.userId) {
+
+            setCrossDomainCookie('jellyAccessToken', data.access_token, {
               path: '/',
               sameSite: 'lax',
-              secure: isSecureContext,
-              expires: 7 // 7 days
+              expires: 7 
             });
-            Cookies.set('jellyUserId', data.userId, {
+            setCrossDomainCookie('jellyUserId', data.userId, {
               path: '/',
               sameSite: 'lax',
-              secure: isSecureContext,
-              expires: 7 // 7 days
+              expires: 7
             });
               set({ 
               jellyAccessToken: data.access_token,
@@ -65,10 +62,11 @@ export const useAuthStore = create(
         } finally {
           set({ isJellyLoading: false });
         }
-      },        clearJellyAuth: () => {
-        // Remove from cookies
-        Cookies.remove('jellyAccessToken');
-        Cookies.remove('jellyUserId');
+      },      
+      clearJellyAuth: () => {
+
+        removeCrossDomainCookie('jellyAccessToken');
+        removeCrossDomainCookie('jellyUserId');
         
         set({ 
           jellyAccessToken: null,
@@ -87,7 +85,7 @@ export const useAuthStore = create(
       retryJellyAuth: async () => {
         const currentState = get();
         if (currentState.userSession?.user?.user?.user_metadata?.provider_id) {
-          // Reset the failed state before retrying
+
           set({ jellyAuthFailed: false, jellyAuthError: null });
           await get().fetchJellyId(currentState.userSession.user.user.user_metadata.provider_id);
         } else {
@@ -113,8 +111,7 @@ export const useAuthStore = create(
           isAuthenticated: true,
           isLoading: false
         });
-        
-        // Extract provider_id for Jelly authentication - handle different data structures
+
         const providerId = userSessionData?.user?.user_metadata?.provider_id || 
                           userSessionData?.user?.user?.user_metadata?.provider_id ||
                           userSessionData?.user?.id;
@@ -178,7 +175,7 @@ export const useAuthStore = create(
             try {
               const userData = JSON.parse(storedSession);
                 if (userData?.id && userData?.user_metadata?.provider_id) {
-                // Reconstruct the correct nested structure for userSession
+
                 const reconstructedSession = {
                   user: {
                     user: userData
@@ -266,7 +263,7 @@ export const useAuthStore = create(
         const storedSession = localStorage.getItem('user-session');
         const currentState = get();
         
-        // If everything is already properly set, skip unnecessary work
+
         if (currentState.isAuthenticated && currentState.jellyAccessToken && currentState.jellyUserId) {
           return;
         }
@@ -274,7 +271,7 @@ export const useAuthStore = create(
           try {
             const userData = JSON.parse(storedSession);
             if (userData?.id && userData?.user_metadata?.provider_id) {
-              // Reconstruct the correct nested structure
+
               const reconstructedSession = {
                 user: {
                   user: userData
@@ -286,8 +283,7 @@ export const useAuthStore = create(
                 isAuthenticated: true,
                 isLoading: false
               });
-              
-              // Check for Jelly auth in cookies
+
               const cookieJellyAccessToken = Cookies.get('jellyAccessToken');
               const cookieJellyUserId = Cookies.get('jellyUserId');
               

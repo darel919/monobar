@@ -17,7 +17,6 @@ export default function JellyAuthWarning() {
   const [isRetrying, setIsRetrying] = useState(false);
   const [retryError, setRetryError] = useState(null);
 
-  // Close modal when authentication succeeds
   useEffect(() => {
     if (hasJellyAuth() && !jellyAuthFailed) {
       const modal = document.getElementById('jelly_auth_modal');
@@ -36,7 +35,6 @@ export default function JellyAuthWarning() {
     setRetryError(null);
     try {
       await retryJellyAuth();
-      // If successful, the modal will automatically close as jellyAuthFailed becomes false
     } catch (error) {
       console.error('Retry failed:', error);
       setRetryError(error.message || 'Failed to retry connection. Please try again.');
@@ -45,7 +43,7 @@ export default function JellyAuthWarning() {
     }
   };
   const openModal = () => {
-    setRetryError(null); // Clear any previous retry errors
+    setRetryError(null);
     document.getElementById('jelly_auth_modal').showModal();
   };
 

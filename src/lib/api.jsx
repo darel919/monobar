@@ -18,10 +18,9 @@ const getEnvironmentHeader = () => {
     return 'production';
 };
 
-// Utility function to get cookies both client and server side
 const getCookieValue = async (name) => {
     if (typeof window !== 'undefined') {
-        // Client-side: use js-cookie
+
         try {
             const Cookies = (await import('js-cookie')).default;
             const value = Cookies.get(name);
@@ -32,7 +31,7 @@ const getCookieValue = async (name) => {
             return null;
         }
     } else {
-        // Server-side: use Next.js cookies
+
         try {
             const { cookies } = await import('next/headers');
             const cookieStore = await cookies();
@@ -96,7 +95,6 @@ export async function serverFetch(endpoint, options = {}, providerId) {
         ...options.headers,
     };
 
-    // Add session ID if available (client-side only)
     if (typeof window !== 'undefined') {
 
         const genSessionId = localStorage.getItem('genSessionId');
@@ -107,7 +105,6 @@ export async function serverFetch(endpoint, options = {}, providerId) {
 
     }
 
-    // Add Jelly authentication for non-request endpoints
     if (!endpoint.startsWith('/request')) {
         const jellyAccessToken = await getCookieValue('jellyAccessToken');
         const jellyUserId = await getCookieValue('jellyUserId');
@@ -142,7 +139,7 @@ export async function serverFetch(endpoint, options = {}, providerId) {
 }
 
 export async function getHome() {
-    // Wait a bit if Jelly auth is still loading
+
     if (typeof window !== 'undefined') {
         const authStore = await import('@/lib/authStore').then(m => m.useAuthStore);
         const state = authStore.getState();
@@ -197,10 +194,13 @@ export async function getTypeData(options = {}, providerId) {
     if (options.id) params.append('id', options.id);
     if (options.sortBy) params.append('sortBy', options.sortBy);
     if (options.sortOrder) params.append('sortOrder', options.sortOrder);
-    const query = params.toString();    try {        const headers = {
+    const query = params.toString();    
+    try {        
+        const headers = {
             "X-Environment": getEnvironmentHeader(),
             'User-Agent': 'dp-Monobar',
-            'Origin': typeof window !== 'undefined' ? window.location.origin : ''        };
+            'Origin': typeof window !== 'undefined' ? window.location.origin : ''        
+        };
 
         const jellyAccessToken = await getCookieValue('jellyAccessToken');
         const jellyUserId = await getCookieValue('jellyUserId');
@@ -221,6 +221,76 @@ export async function getTypeData(options = {}, providerId) {
     } catch (error) {
         if (error.message === "fetch failed") {
             throw new Error("Unable to connect to the video server. Please check your internet connection or try again later.");
+        }
+        throw error;
+    }
+}
+
+export async function getAllGenres() {
+    try {
+        const headers = {
+            "X-Environment": getEnvironmentHeader(),
+            'User-Agent': 'dp-Monobar',
+            'Origin': typeof window !== 'undefined' ? window.location.origin : ''
+        };
+
+        const jellyAccessToken = await getCookieValue('jellyAccessToken');
+        const jellyUserId = await getCookieValue('jellyUserId');
+        if (jellyAccessToken && jellyUserId) {
+            headers['Authorization'] = `monobar_user=${jellyUserId},monobar_token=${jellyAccessToken}`;
+        }
+
+        const res = await fetch(`${API_BASE_URL}/library/genres`, {
+            headers
+        });
+        if (!res.ok) {
+            console.log(res)
+            throw new Error(`Failed to fetch genres (HTTP ${res.status})`);
+        }
+        return await res.json();
+    } catch (error) {
+        if (error.message === "fetch failed") {
+            throw new Error("Unable to connect to the server. Please check your internet connection or try again later.");
+        }
+        throw error;
+    }
+}
+
+export async function getGenreData(options = {}) {
+    const params = new URLSearchParams();
+    if (options.genreId) params.append('id', options.genreId);
+    if (options.sortBy) params.append('sortBy', options.sortBy);
+    if (options.sortOrder) params.append('sortOrder', options.sortOrder);
+    const query = params.toString();
+
+    try {
+        const headers = {
+            "X-Environment": getEnvironmentHeader(),
+            'User-Agent': 'dp-Monobar',
+            'Origin': typeof window !== 'undefined' ? window.location.origin : ''
+        };
+
+        const jellyAccessToken = await getCookieValue('jellyAccessToken');
+        const jellyUserId = await getCookieValue('jellyUserId');
+        if (jellyAccessToken && jellyUserId) {
+            headers['Authorization'] = `monobar_user=${jellyUserId},monobar_token=${jellyAccessToken}`;
+        }
+
+        const res = await fetch(`${API_BASE_URL}/library/genre?${query}`, {
+            headers
+        });
+        if (!res.ok) {
+            if (res.status === 404) {
+                console.log(res)
+                throw new Error("Genre not found. It may have been removed or you might have an invalid link.");
+            }
+            console.error(res);
+            throw new Error(`Failed to fetch genre data (HTTP ${res.status})`);
+        }
+        return await res.json();
+    } catch (error) {
+        if (error.message === "fetch failed") {
+            throw new Error("Unable to connect to the server. Please check your internet connection or try again later.");
         }
         throw error;
     }
@@ -261,7 +331,10 @@ export async function search(query, options = {}) {
     let url = `${API_BASE_URL}/search?q=${encodeURIComponent(query)}`;
     if (options.includeExternal) {
         url += `&includeRequest=true`;
-    }    try {        const headers = {
+    }
+    if (options.type) {
+        url += `&type=${encodeURIComponent(options.type)}`;
+    }try {        const headers = {
             "X-Environment": getEnvironmentHeader(),
             'User-Agent': 'dp-Monobar',
             'Origin': typeof window !== 'undefined' ? window.location.origin : ''

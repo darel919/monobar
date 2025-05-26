@@ -86,13 +86,17 @@ export default function LibraryViewDisplay({ data, viewMode, disableClick, onReq
       return item.ImageTags?.Primary;
     } else if (responsiveViewMode === "poster grid" || responsiveViewMode === "posterView") {
       return item.posterPath;
-    } else if (responsiveViewMode === "default_search") {
+  } else if (responsiveViewMode === "default_search" || responsiveViewMode === "default_search_genre") {
       return item.thumbPath;
     }
     return item.thumbPath;
   };
-
   const handleItemClick = (item) => {
+    if (responsiveViewMode === "default_search_genre") {
+
+      window.location.href = `/library?genreId=${item.id}`;
+      return;
+    }
     setModalItem(item);
     setModalOpen(true);
   };
@@ -398,6 +402,38 @@ export default function LibraryViewDisplay({ data, viewMode, disableClick, onReq
             </section>
           </a>
         ))}
+      </section>
+    );
+  }
+
+  if (responsiveViewMode === "default_search_genre") {
+    return (
+      <section className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        {data.map((item, index) => {
+          const uniqueKey = `${item.id || index}-genre`;
+          return (
+            <button
+              key={uniqueKey}
+              onClick={() => handleItemClick(item)}
+              className="group relative aspect-video w-full overflow-hidden rounded-xl bg-base-300/50 hover:bg-base-300 transition-all duration-200 ease-in-out"
+            >
+              {item.thumbPath && (
+                <img
+                  src={item.thumbPath}
+                  alt={item.Name}
+                  className="absolute inset-0 h-48 w-full object-cover opacity-50 group-hover:opacity-75 transition-opacity"
+                />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-base-300/80 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-3">
+                <h3 className="text-sm font-semibold truncate">{item.Name}</h3>
+                {item.Count && (
+                  <p className="text-xs opacity-75">{item.Count} titles</p>
+                )}
+              </div>
+            </button>
+          );
+        })}
       </section>
     );
   }

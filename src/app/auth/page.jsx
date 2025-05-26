@@ -40,8 +40,6 @@ export default function AuthPage() {
             console.log('Notifying parent window of auth success');
             window.opener.localStorage.setItem('authSuccess', 'true');
             window.opener.postMessage({ type: 'AUTH_SUCCESS' }, '*');
-            
-            // Force the parent window to check auth status
             if (window.opener.useAuthStore) {
               console.log('Calling checkAuthStatus on parent window');
               window.opener.useAuthStore.getState().checkAuthStatus();

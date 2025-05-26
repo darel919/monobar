@@ -7,17 +7,18 @@ import Loading from "../loading";
 import ClientPlayButton from "@/components/InfoClientPlayButton";
 import LibraryViewDisplay from "@/components/libraryViewDisplay";
 import PeopleViewDisplay from "@/components/peopleViewDisplay";
+import Link from "next/link";
 
 export async function generateMetadata({ searchParams }) {
   const { id } = await searchParams;
-  if (!id) return { title: "MoNobar by DWS" };
+  if (!id) return { title: "MoNobar" };
   try {
     const infoData = await getMovieData(id, "info");
     return {
-      title: `${infoData.Name} - MoNobar by DWS`
+      title: `${infoData.Name} - MoNobar`
     };
   } catch {
-    return { title: "MoNobar by DWS" };
+    return { title: "MoNobar" };
   }
 }
 
@@ -106,10 +107,16 @@ export default async function InfoPage({ searchParams }) {
               {infoData.ProductionYear}
             </span>
             <div className="flex flex-row items-center mt-4 sm:mt-0">
-              {infoData.Rating && <span className="badge badge-neutral">{infoData.Rating}</span>}
+              {infoData.Rating && <span className="badge badge-neutral">{infoData.Rating}</span>}              
               <div className="flex flex-wrap gap-1 sm:ml-2">
-                {infoData.Genres && infoData.Genres.map((genre, index) => (
-                  <span key={index} className="badge badge-neutral">{genre}</span>
+                {infoData.GenreItems && infoData.GenreItems.map((genre, index) => (
+                  <Link 
+                    key={index} 
+                    href={`/library?genreId=${genre.Id}`}
+                    className="badge badge-neutral hover:badge-primary transition-colors cursor-pointer"
+                  >
+                    {genre.Name}
+                  </Link>
                 ))}
               </div>
             </div>

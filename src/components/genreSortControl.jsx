@@ -12,7 +12,7 @@ const sortOptions = [
   { value: "Runtime", label: "Runtime" },
 ];
 
-export default function LibrarySortControl({ id, sortBy, sortOrder }) {
+export default function GenreSortControl({ genreId, sortBy, sortOrder }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [currentSortBy, setCurrentSortBy] = useState(sortBy);
@@ -22,6 +22,7 @@ export default function LibrarySortControl({ id, sortBy, sortOrder }) {
     setCurrentSortBy(sortBy);
     setCurrentSortOrder(sortOrder);
   }, [sortBy, sortOrder]);
+
   useEffect(() => {
     if (typeof document !== "undefined") {
       setCrossDomainDocumentCookie('librarySortBy', currentSortBy, { path: '/' });
@@ -33,10 +34,10 @@ export default function LibrarySortControl({ id, sortBy, sortOrder }) {
     setCurrentSortBy(newSortBy);
     setCurrentSortOrder(newSortOrder);
     const params = new URLSearchParams(searchParams.toString());
-    params.set("id", id);
+    params.set("genreId", genreId);
     params.set("sortBy", newSortBy);
     params.set("sortOrder", newSortOrder);
-    const paramString = params.toString().replace(/(&?id=[^&]*){2,}/, `&id=${id}`);
+    const paramString = params.toString().replace(/(&?genreId=[^&]*){2,}/, `&genreId=${genreId}`);
     router.replace(`/library?${paramString}`);
   };
 
@@ -49,7 +50,7 @@ export default function LibrarySortControl({ id, sortBy, sortOrder }) {
 
   return (
     <form className="flex gap-4" method="get" action="" onChange={handleChange}>
-      <input type="hidden" name="id" value={id} />
+      <input type="hidden" name="genreId" value={genreId} />
       <div className="form-control">
         <label className="label">
           <span className="label-text">Sort By:</span>
