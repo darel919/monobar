@@ -13,7 +13,7 @@ export default async function Footer() {
             <Link href="/" className="flex items-center">
                 <img src="/favicon.ico" alt="darel's Projects" className="w-12 h-12 rounded-full" />
                 <section className='ml-2'>
-                    <h2 className="font-bold text-xl">MoNobar!</h2>
+                    <h2 className="font-bold text-xl">moNobar</h2>
                     <VersionDisplay version={appVersion} buildDate={appBuildDate} />
                 </section>
             </Link>

@@ -44,11 +44,17 @@ export default function Navbar() {
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-  if (pathname === '/watch') {
+  }, []);  if (pathname === '/watch') {
     const id = searchParams.get('id');
     const type = searchParams.get('type');
-    const href = id && type ? `/info?id=${id}&type=${type}` : '/';
+    const seriesId = searchParams.get('seriesId');
+    
+    let href = '/';
+    if (seriesId) {
+      href = `/info?id=${seriesId}&type=Series`;
+    } else if (id && type) {
+      href = `/info?id=${id}&type=${type}`;
+    }
 
     return (
       <div className="w-full h-16 fixed top-0 left-0 right-0 z-[99]">

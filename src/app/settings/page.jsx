@@ -116,7 +116,7 @@ export default function SettingsPage() {
                         Back
                     </button>
                     <h1 className="text-4xl font-bold mb-2">Settings</h1>
-                    <p className="text-base-content/70">Customize your MoNobar experience</p>
+                    <p className="text-base-content/70">Customize your moNobar experience</p>
                 </div>
 
                 <div className="space-y-6">

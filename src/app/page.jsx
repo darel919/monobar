@@ -42,9 +42,9 @@ export default function Home() {
     if (error) {
         return (
             <ErrorState 
-                message="Currently, the MoNobar library is unavailable." 
+                message="Currently, moNobar library is unavailable." 
                 actionText="Try Again" 
-                actionDesc="We are having trouble loading the MoNobar content library. Please try refreshing the page."
+                actionDesc="We are having trouble loading the moNobar content library. Please try refreshing the page."
             />
         );
     }
@@ -52,7 +52,7 @@ export default function Home() {
     if (!homeData || homeData.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen text-center p-8">
-                <h1 className="text-3xl font-bold mb-4">Welcome to MoNobar</h1>
+                <h1 className="text-3xl font-bold mb-4">Welcome to moNobar</h1>
                 <p className="text-gray-400 mb-8">No content libraries are currently available.</p>
                 <Link 
                     href="/request" 

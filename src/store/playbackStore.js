@@ -45,10 +45,13 @@ const usePlaybackStore = create((set, get) => ({
                 error: 'Missing required playback parameters' 
             });
         }
-    },    stopPlayback: async () => {
+    },        stopPlayback: async () => {
         console.warn("Stopping playback...");
         try {
-            await updateState();
+            const sessionId = getOrCreateGenSessionId();
+            if (sessionId) {
+                await updateState(sessionId);
+            }
         } catch (error) {
             console.error('Unable to report stopped playback status!\n', error);
         } finally {
@@ -58,6 +61,14 @@ const usePlaybackStore = create((set, get) => ({
                 error: null
             });
         }
+    },
+    
+    stopPlaybackSilent: () => {
+        set({ 
+            status: 'stopped',
+            src: null,
+            error: null
+        });
     },
 }));
 

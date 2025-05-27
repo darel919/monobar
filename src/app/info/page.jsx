@@ -7,6 +7,7 @@ import Loading from "../loading";
 import ClientPlayButton from "@/components/InfoClientPlayButton";
 import LibraryViewDisplay from "@/components/libraryViewDisplay";
 import PeopleViewDisplay from "@/components/peopleViewDisplay";
+import SeasonsEpisodesViewer from "@/components/SeasonsEpisodesViewer";
 import Link from "next/link";
 
 export async function generateMetadata({ searchParams }) {
@@ -163,13 +164,22 @@ export default async function InfoPage({ searchParams }) {
           ) : (
             <p className="text-xs mb-1">No subtitles available</p>
           )}
-        </section>
-        <div className="overflow-hidden md:relative my-4">
+        </section>        <div className="overflow-hidden md:relative my-4">
           <h2 className="text-lg leading-[1.6] sm:leading-[1.75] mt-4 md:after:absolute md:after:bottom-0 md:after:left-0 md:after:w-full md:after:h-32">{infoData.Overview}</h2>
         </div>
-        {infoData.playUrl && <ClientPlayButton id={id} type={type} playUrl={infoData.playUrl} />}
+        {infoData.playUrl && <ClientPlayButton id={id} type={type} playUrl={infoData.playUrl} seriesData={type === 'Series' ? infoData : null} />}
 
       </section>
+        {/* TV Series Episodes Viewer */}
+      {type === 'Series' && infoData.availableSeasons && infoData.availableSeasons.length > 0 && (
+        <section className="px-8 my-8">
+          <h3 className="text-2xl font-bold mb-4">Episodes</h3>
+          <div className="bg-base-200 rounded-lg overflow-hidden">
+            <SeasonsEpisodesViewer seriesData={infoData} mode="info" />
+          </div>
+        </section>
+      )}
+
       {infoData.People && infoData.People.length > 0 && (
         <section className="ml-8 my-4">
           <p className="font-bold w-fit p-2 text-white mb-4">Cast and Crew</p>

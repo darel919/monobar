@@ -12,10 +12,11 @@ import { useRouter } from 'next/navigation';
 import StatsForNerds from "./WatchPlayerStats";
 
 export default function Player({ poster, fullData, id, type }) {
-    const artRef = useRef();
+    const artRef = useRef();    
     const router = useRouter();
     const isDev = process.env.NODE_ENV === 'development';
     const stopPlayback = usePlaybackStore(useCallback(state => state.stopPlayback, []));
+    const stopPlaybackSilent = usePlaybackStore(useCallback(state => state.stopPlaybackSilent, []));
     const status = usePlaybackStore(useCallback(state => state.status, []));
     const src = usePlaybackStore(useCallback(state => state.src, []));
     const [playbackEnded, setPlaybackEnded] = useState(false);
@@ -78,7 +79,8 @@ export default function Player({ poster, fullData, id, type }) {
         } catch (error) {
             return [];
         }
-    };    async function postStatus(intent, data) {
+    };    
+    async function postStatus(intent, data) {
         const sessionId = getOrCreateGenSessionId();
         if (!sessionId) return;
         
@@ -382,12 +384,31 @@ export default function Player({ poster, fullData, id, type }) {
                 art.off('error', handlePlayerError);
                 art.off('ended', handleEnd);
                 art.video.removeEventListener('ended', handleEnd);
-                postStatus('stop', getStatusData());
-                stopPlayback();
+                
+                // Clean up HLS instance before destroying the player
+                if (art.hls && typeof art.hls.destroy === 'function') {
+                    try {
+                        art.hls.destroy();
+                        art.hls = null;
+                    } catch (error) {
+                        console.warn('Error destroying HLS instance:', error);
+                    }
+                }
+                
+                // Fire and forget the stop status - don't await it
+                try {
+                    postStatus('stop', getStatusData()).catch(error => {
+                        console.warn('Stop status failed:', error);
+                    });
+                } catch (error) {
+                    console.warn('Unable to send stop status during cleanup:', error);
+                }
+                
+                stopPlaybackSilent();
                 art.destroy(false);
             }
         };
-    }, [src, poster, status, stopPlayback]);
+    }, [src, poster, status, stopPlayback, stopPlaybackSilent]);
 
     const handleCloseStats = () => {
         setShowStats(false);

@@ -15,19 +15,19 @@ export async function generateMetadata({ searchParams }) {
   const sortBy = params.sortBy || cookieStore.get("librarySortBy")?.value || "ProductionYear";
   const sortOrder = params.sortOrder || cookieStore.get("librarySortOrder")?.value || "desc";
 
-  let title = "Monobar Library";
+  let title = "moNobar Library";
   try {
     let libData;
     if (genreId) {
       libData = await getGenreData({ genreId, sortBy, sortOrder });
-      title = (libData?.Name + " - Monobar");
+      title = (libData?.Name + " - moNobar");
     } else if (id) {
       libData = await getTypeData({ id, sortBy, sortOrder });
-      title = libData?.library?.Name || libData?.Name || (title + " - Monobar");
+      title = libData?.library?.Name || libData?.Name || (title + " - moNobar");
     }
   } catch (err) {
     console.error("Error generating metadata:", err);
-    // title = "Monobar Library - Error";
+    // title = "moNobar Library - Error";
   }
   return { title };
 }
@@ -76,15 +76,20 @@ export default async function LibraryTypeView({ searchParams }) {
   if (error) {
     return (
       <ErrorState 
-        message={genreId ? "Currently, this genre is unavailable." : "Currently, the MoNobar library is unavailable."} 
+        message={genreId ? "Currently, this genre is unavailable." : "Currently, the moNobar library is unavailable."} 
         actionText="Try Again" 
-        actionDesc={genreId ? "We are having trouble loading this genre. Please try refreshing the page." : "We are having trouble loading the MoNobar content library. Please try refreshing the page."}
+        actionDesc={genreId ? "We are having trouble loading this genre. Please try refreshing the page." : "We are having trouble loading the moNobar content library. Please try refreshing the page."}
         action="reload"
       />
     );
   }
 
-  if (!libData?.content?.length) return null;
+  if (!libData?.content?.length) return <ErrorState 
+        message={genreId ? "This library has no content." : "Currently, the moNobar library is unavailable."} 
+        actionText="Go Back" 
+        actionDesc={"Please try another genre."}
+        action="back"
+      />;
   
   return (
     <section className="flex flex-col min-h-screen p-8 mt-16">

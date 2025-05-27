@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getOrCreateGenSessionId } from '@/lib/genSessionId';
-import { getEnvironmentHeader } from '@/lib/api';
+import { getEnvironmentHeader, getCookieValue } from '@/lib/api';
 
-export default function ClientPlayButton({ id, type, playUrl }) {
+export default function ClientPlayButton({ id, type, playUrl, seriesData }) {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [playbackData, setPlaybackData] = useState(null);
@@ -33,8 +33,7 @@ export default function ClientPlayButton({ id, type, playUrl }) {
     }, []);
 
     useEffect(() => {
-        let mounted = true;
-
+        let mounted = true;        
         const fetchPlaybackData = async () => {
             if (!id || !type || !playUrl) {
                 setError('Missing required parameters');
@@ -42,14 +41,33 @@ export default function ClientPlayButton({ id, type, playUrl }) {
                 return;
             }
 
+            // For TV series, use nextUpEpisode if available
+            let actualPlayUrl = playUrl;
+            let actualId = id;
+            let actualType = type;
+            
+            if (type === 'Series' && seriesData?.nextUpEpisode?.playUrl) {
+                actualPlayUrl = seriesData.nextUpEpisode.playUrl;
+                actualId = seriesData.nextUpEpisode.Id;
+                actualType = 'Episode';
+            }            
             try {
-                const response = await fetch(playUrl, {
+                const headers = {
+                    "X-Environment": getEnvironmentHeader(),
+                    "X-Session-ID": getOrCreateGenSessionId(),
+                    'Origin': typeof window !== 'undefined' ? window.location.origin : ''
+                };
+
+                const jellyAccessToken = await getCookieValue('jellyAccessToken');
+                const jellyUserId = await getCookieValue('jellyUserId');
+                
+                if (jellyAccessToken && jellyUserId) {
+                    headers['Authorization'] = `monobar_user=${jellyUserId},monobar_token=${jellyAccessToken}`;
+                }
+
+                const response = await fetch(actualPlayUrl, {
                     method: 'GET',
-                    headers: {
-                        "X-Environment": getEnvironmentHeader(),
-                        "X-Session-ID": getOrCreateGenSessionId(),
-                        'Origin': typeof window !== 'undefined' ? window.location.origin : ''
-                    }
+                    headers
                 });
                 
                 if (!mounted) return;
@@ -63,7 +81,7 @@ export default function ClientPlayButton({ id, type, playUrl }) {
                     throw new Error('Invalid playback response from server');
                 }
 
-                setPlaybackData(data);
+                setPlaybackData({ ...data, episodeId: actualId, episodeType: actualType });
                 setError(null);
             } catch (err) {
                 if (mounted) {
@@ -83,16 +101,19 @@ export default function ClientPlayButton({ id, type, playUrl }) {
             setIsLoading(false);
             setError(null);
             setPlaybackData(null);
-        };
-    }, [id, type, playUrl]);
+        };    }, [id, type, playUrl, seriesData]);
 
     const handleCantPlay = () => {
         alert("Cannot play this title. Please try another title.");
-    }    
-    const handlePlay = () => {
+    };
+      const handlePlay = () => {
         setIsLoading(true);
         if (playbackData) {
-            router.push(`/watch?id=${id}&type=${type}`);
+            if (type === 'Series' && playbackData.episodeId) {
+                router.push(`/watch?id=${playbackData.episodeId}&type=${playbackData.episodeType}&seriesId=${id}`);
+            } else {
+                router.push(`/watch?id=${id}&type=${type}`);
+            }
         }
     };
 
