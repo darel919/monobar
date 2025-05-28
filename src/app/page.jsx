@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { getHome } from "@/lib/api";
 import ErrorState from "@/components/ErrorState";
-import LibraryViewDisplay from "@/components/libraryViewDisplay";
+import LibraryViewDisplay from "@/components/LibraryViewDisplay";
 import Link from 'next/link';
 import HomeRequestList from '@/components/HomeRequestList';
 import HeroCarousel from '@/components/HomeHeroCarousel';

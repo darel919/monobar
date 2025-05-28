@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { getRequests, getWaitingList } from "@/lib/api";
 import ErrorState from "@/components/ErrorState";
 import Link from "next/link";
-import LibraryViewDisplay from "@/components/libraryViewDisplay";
+import LibraryViewDisplay from "@/components/LibraryViewDisplay";
 
 export default function RequestPage() {
   const [requestData, setRequestData] = useState(null);

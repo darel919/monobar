@@ -9,11 +9,10 @@ export default function PlayNext({
     onPlayNext, 
     onCancel 
 }) {
-    const [progress, setProgress] = useState(0);
-
-    useEffect(() => {
+    const [progress, setProgress] = useState(0);    useEffect(() => {
         if (visible && secondsRemaining > 0) {
-            const progressPercent = ((15 - secondsRemaining) / 15) * 100;
+            // Progress bar spans from 40 seconds to 12 seconds (28 second window)
+            const progressPercent = ((40 - secondsRemaining) / 28) * 100;
             setProgress(Math.min(100, Math.max(0, progressPercent)));
         }
     }, [visible, secondsRemaining]);
@@ -52,11 +51,9 @@ export default function PlayNext({
                     <p className="font-medium text-base-content line-clamp-2">
                         {nextEpisodeInfo.title}
                     </p>
-                </div>
-
-                <div className="flex items-center justify-between">
+                </div>                  <div className="flex items-center justify-between">
                     <span className="text-sm text-base-content/60">
-                        Auto play in {secondsRemaining}s
+                        {secondsRemaining <= 12 ? 'Loading next episode...' : `Playing next episode in ${secondsRemaining}s`}
                     </span>
                     <button
                         onClick={onPlayNext}

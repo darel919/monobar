@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { getRequests } from "@/lib/api";
 import Link from "next/link";
-import LibraryViewDisplay from "@/components/libraryViewDisplay";
+import LibraryViewDisplay from "@/components/LibraryViewDisplay";
 
 export default function HomeRequestList() {
   const [requestData, setRequestData] = useState(null);

@@ -87,9 +87,7 @@ export default function SeasonsEpisodesViewer({ seriesData, currentEpisodeId, mo
     const handleEpisodeClick = (episode) => {
         setSelectedEpisode(episode);
         router.replace(`/watch?id=${episode.Id}&type=Episode&seriesId=${seriesData.Id}`);
-    };
-
-    const formatRuntime = (ticks) => {
+    };    const formatRuntime = (ticks) => {
         if (!ticks) return '';
         const totalMinutes = Math.floor(ticks / 600000000);
         const hours = Math.floor(totalMinutes / 60);
@@ -98,6 +96,19 @@ export default function SeasonsEpisodesViewer({ seriesData, currentEpisodeId, mo
             return `${hours}h ${minutes}m`;
         }
         return `${minutes}m`;
+    };
+
+    const formatRuntimeDetailed = (ticks) => {
+        if (!ticks) return '';
+        const totalSeconds = Math.floor(ticks / 10000000);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        
+        if (hours > 0) {
+            return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     };
 
     const formatDate = (dateString) => {
@@ -175,7 +186,7 @@ export default function SeasonsEpisodesViewer({ seriesData, currentEpisodeId, mo
                                     ref={currentEpisodeId === episode.Id ? currentEpisodeRef : 
                                          nextEpisode?.Id === episode.Id ? nextEpisodeRef : null}
                                     onClick={() => handleEpisodeClick(episode)}
-                                    className={`rounded-xl cursor-pointer transition-all duration-200 border-2 touch-manipulation active:scale-[0.98]
+                                    className={`rounded-xl cursor-pointer transition-all duration-200 touch-manipulation active:scale-[0.98]
                                         ${currentEpisodeId === episode.Id ? 'bg-primary/10 border-primary shadow-lg' : 
                                           
                                           selectedEpisode?.Id === episode.Id ? 'bg-base-200 border-base-300 shadow-md' : 
@@ -197,13 +208,7 @@ export default function SeasonsEpisodesViewer({ seriesData, currentEpisodeId, mo
                                                     <h5 className="font-semibold text-base leading-tight mb-1 line-clamp-2">
                                                         {episode.Name}
                                                     </h5>
-                                                    
-                                                    <div className="flex items-center gap-3 mb-2">
-                                                        {episode.RunTimeTicks && (
-                                                            <span className="text-xs text-gray-500 bg-base-200 px-2 py-1 rounded-full">
-                                                                {formatRuntime(episode.RunTimeTicks)}
-                                                            </span>
-                                                        )}
+                                                      <div className="flex items-center gap-3 mb-2">
                                                         {episode.CommunityRating && (
                                                             <div className="flex items-center gap-1 text-xs text-gray-500">
                                                                 <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="w-3 h-3 text-yellow-500">
@@ -227,15 +232,19 @@ export default function SeasonsEpisodesViewer({ seriesData, currentEpisodeId, mo
                                                     )}
                                                 </div>
                                             </div>
-                                            
-                                            {/* Episode thumbnail - Mobile */}
+                                              {/* Episode thumbnail - Mobile */}
                                             {episode.ImageTags?.Primary && (
-                                                <div className="mt-3 w-full h-32 bg-base-300 rounded-lg overflow-hidden">
+                                                <div className="mt-3 w-full h-32 bg-base-300 rounded-lg overflow-hidden relative">
                                                     <img
                                                         src={episode.ImageTags.Primary}
                                                         alt={`Episode ${episode.IndexNumber}`}
                                                         className="w-full h-full object-cover"
-                                                    />
+                                                    />                                                    {/* YouTube-style duration badge - Mobile */}
+                                                    {episode.RunTimeTicks && isWatchMode && (
+                                                        <div className="absolute bottom-1 right-1 bg-black/80 text-white text-xs px-1.5 py-0.5 rounded">
+                                                            {formatRuntimeDetailed(episode.RunTimeTicks)}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                             
@@ -259,16 +268,22 @@ export default function SeasonsEpisodesViewer({ seriesData, currentEpisodeId, mo
                                     </div>
                                     
                                     {/* Desktop Layout */}
-                                    <div className="hidden md:block p-3">
-                                        <div className="flex items-start gap-3">
-                                            {/* Episode Thumbnail - Desktop */}
-                                            <div className="flex-shrink-0 bg-base-300 rounded overflow-hidden w-24 h-14">
+                                    <div className="hidden md:block p-2">
+                                        <div className="flex items-start gap-3">                                            {/* Episode Thumbnail - Desktop */}
+                                            <div className="flex-shrink-0 bg-base-300 rounded overflow-hidden w-32 h-18 relative">
                                                 {episode.ImageTags?.Primary ? (
-                                                    <img
-                                                        src={episode.ImageTags.Primary}
-                                                        alt={`Episode ${episode.IndexNumber}`}
-                                                        className="w-full h-full object-cover"
-                                                    />
+                                                    <>
+                                                        <img
+                                                            src={episode.ImageTags.Primary}
+                                                            alt={`Episode ${episode.IndexNumber}`}
+                                                            className="w-full h-full object-cover"
+                                                        />                                                        {/* YouTube-style duration badge - Desktop */}
+                                                        {episode.RunTimeTicks && isWatchMode && (
+                                                            <div className="absolute bottom-0.5 right-0.5 bg-black/80 text-white text-xs px-1 py-0.5 rounded text-[10px] leading-none">
+                                                                {formatRuntimeDetailed(episode.RunTimeTicks)}
+                                                            </div>
+                                                        )}
+                                                    </>
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center bg-base-300">
                                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 opacity-50">
@@ -279,17 +294,13 @@ export default function SeasonsEpisodesViewer({ seriesData, currentEpisodeId, mo
                                             </div>
 
                                             {/* Episode Info - Desktop */}
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2">
+                                            <div className="flex-1 min-w-0">                                                <div className="flex items-center gap-2">
                                                     <span className="font-medium text-primary text-sm">
                                                         {episode.IndexNumber + '.' || index + 1}
                                                     </span>
                                                     <h5 className="font-semibold truncate">
                                                         {episode.Name}
                                                     </h5>
-                                                    {episode.RunTimeTicks && (
-                                                        <p className="text-xs opacity-50">{formatRuntime(episode.RunTimeTicks)}</p>
-                                                    )}
                                                 </div>
                                                 
                                                 <div className="flex items-center text-gray-500 mb-2 text-xs gap-3">

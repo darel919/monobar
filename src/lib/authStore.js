@@ -19,16 +19,18 @@ export const useAuthStore = create(
       isJellyLoading: false,
       jellyAuthFailed: false,
       jellyAuthError: null,
-        isSuperadmin: (state) => {
+      isSuperadmin: (state) => {
         return state.userSession?.user?.user?.user_metadata?.role === 'superadmin';
-      },fetchJellyId: async (providerId) => {
+      },
+      fetchJellyId: async (providerId) => {
         if (!providerId) {
           return;
         }
         
         try {
           set({ isJellyLoading: true, jellyAuthFailed: false, jellyAuthError: null });
-          const data = await getJellyId(providerId);          if (data && data.access_token && data.userId) {
+          const data = await getJellyId(providerId);          
+          if (data && data.access_token && data.userId) {
 
             setCrossDomainCookie('jellyAccessToken', data.access_token, {
               path: '/',
@@ -45,14 +47,16 @@ export const useAuthStore = create(
               jellyUserId: data.userId,
               jellyAuthFailed: false, 
               jellyAuthError: null
-            });          } else {
+            });          
+          } else {
             set({ 
               jellyAccessToken: null,
               jellyUserId: null,
               jellyAuthFailed: true, 
               jellyAuthError: 'Server did not return valid Jelly credentials'
             });
-          }        } catch (error) {
+          }        
+        } catch (error) {
           set({ 
             jellyAccessToken: null,
             jellyUserId: null,
@@ -81,7 +85,8 @@ export const useAuthStore = create(
           jellyAuthFailed: false, 
           jellyAuthError: null 
         });
-      },        retryJellyAuth: async () => {
+      },        
+      retryJellyAuth: async () => {
         const currentState = get();
         const providerId = currentState.userSession?.user?.user_metadata?.provider_id || 
                           currentState.userSession?.user?.user?.user_metadata?.provider_id ||
@@ -103,7 +108,8 @@ export const useAuthStore = create(
           (state.jellyAccessToken && state.jellyUserId) || 
           (cookieAccessToken && cookieUserId)
         );
-      },        handleAuthSuccess: async (userSessionData) => {
+      },        
+      handleAuthSuccess: async (userSessionData) => {
         if (!userSessionData) return;
 
         console.log('handleAuthSuccess called with:', userSessionData);
@@ -168,7 +174,8 @@ export const useAuthStore = create(
         setTimeout(() => {
           set({ isLoggingOut: false });
         }, 1000);
-      },      fetchUserSession: async () => {
+      },      
+      fetchUserSession: async () => {
         try {
           set({ isLoading: true });          
           const storedSession = localStorage.getItem('user-session');
@@ -261,7 +268,8 @@ export const useAuthStore = create(
         }
 
         return await currentStore.fetchUserSession();
-      },      checkAuthStatus: () => {
+      },      
+      checkAuthStatus: () => {
         const storedSession = localStorage.getItem('user-session');
         const currentState = get();
         
@@ -317,7 +325,8 @@ export const useAuthStore = create(
             });
           }
         }
-      }}),    {
+      }}),    
+      {
       name: "auth-storage",      
       partialize: (state) => ({
         isAuthenticated: state.isAuthenticated,

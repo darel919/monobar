@@ -7,7 +7,7 @@ import ScrollToTop from "@/components/ScrollToTop";
 import SessionInitializer from '@/components/SessionInitializer';
 import AuthSessionInitializer from '@/components/AuthSessionInitializer';
 import ThemeInitializer from '@/components/ThemeInitializer';
-import UrlDetector from '@/components/homeDetection';
+import UrlDetector from '@/components/HomeDetection';
 import "./globals.css";
 import Navbar from '@/components/Navbar';
 

@@ -2,9 +2,9 @@
 
 import { getTypeData, getGenreData } from "@/lib/api";
 import ErrorState from "@/components/ErrorState";
-import LibraryViewDisplay from "@/components/libraryViewDisplay";
-import LibrarySortControl from "@/components/librarySortControl";
-import GenreSortControl from "@/components/genreSortControl";
+import LibraryViewDisplay from "@/components/LibraryViewDisplay";
+import LibrarySortControl from "@/components/LibrarySortControl";
+import GenreSortControl from "@/components/GenreSortControl";
 import { cookies } from "next/headers";
 
 export async function generateMetadata({ searchParams }) {

@@ -162,10 +162,8 @@ export default function SettingsPage() {
                                         className="toggle toggle-primary mt-1" 
                                         checked={settings.playNextEnabled}
                                         onChange={handlePlayNextToggle}
-                                    />
-                                    <div className="flex flex-col">                                        <span className="label-text text-lg font-medium">Show "Play Next" for TV Series</span>
-                                        <p className="text-sm text-base-content/60 mt-1 whitespace-normal leading-snug">
-                                            When enabled, shows a "Play Next" prompt 30 seconds before an episode ends. Episodes will always auto-progress, but this lets you jump ahead early.
+                                    />                                    <div className="flex flex-col">                                        <span className="label-text text-lg font-medium">Show "Play Next" for TV Series</span>                                        <p className="text-sm text-base-content/60 mt-1 whitespace-normal leading-snug">
+                                            When enabled, shows a "Play Next" prompt 40 seconds before an episode ends, counting down to 12 seconds when it auto-progresses. You can dismiss it to let the video play to 0 seconds before progressing.
                                         </p>
                                     </div>
                                 </label>

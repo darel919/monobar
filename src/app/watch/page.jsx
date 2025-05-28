@@ -230,13 +230,14 @@ export default function WatchPage() {
                                     <span className="loading loading-spinner loading-lg"></span>
                                 </div>
                             )}
-                        </div>
-
-                        {/* Episode Data Section */}
+                        </div>                        {/* Episode Data Section */}
                         <div className="bg-base-200 rounded-lg p-6">
                             {watchData ? (
                                 <div className="space-y-4">
                                     <div>
+                                        {type === 'Episode' && seriesData && (
+                                            <h2 className="text-lg font-medium text-base-content/80 mb-1">{seriesData.Name}</h2>
+                                        )}
                                         <h1 className="text-2xl font-bold mb-2">{watchData.Name}</h1>
                                         {type === 'Episode' && (
                                             <div className="text-sm text-base-content/70 mb-3">

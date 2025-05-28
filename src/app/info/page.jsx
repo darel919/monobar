@@ -5,8 +5,8 @@ import WatchBackdropDisplay from "@/components/WatchBackdropDisplay";
 import { getMovieData } from "@/lib/api";
 import Loading from "../loading";
 import ClientPlayButton from "@/components/InfoClientPlayButton";
-import LibraryViewDisplay from "@/components/libraryViewDisplay";
-import PeopleViewDisplay from "@/components/peopleViewDisplay";
+import LibraryViewDisplay from "@/components/LibraryViewDisplay";
+import PeopleViewDisplay from "@/components/PeopleViewDisplay";
 import SeasonsEpisodesViewer from "@/components/SeasonsEpisodesViewer";
 import Link from "next/link";
 

@@ -27,16 +27,20 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
     const src = usePlaybackStore(useCallback(state => state.src, []));    
     const [playbackEnded, setPlaybackEnded] = useState(false);
     const [showStats, setShowStats] = useState(false);
-    const [playerMounted, setPlayerMounted] = useState(false);    const [showPlayNext, setShowPlayNext] = useState(false);
-    const [playNextCountdown, setPlayNextCountdown] = useState(30);
+    const [playerMounted, setPlayerMounted] = useState(false);      const [showPlayNext, setShowPlayNext] = useState(false);
+    const [playNextCountdown, setPlayNextCountdown] = useState(40);
+    const [playNextDismissed, setPlayNextDismissed] = useState(false);
     const [nextEpisode, setNextEpisode] = useState(null);
     const [currentSeriesData, setCurrentSeriesData] = useState(seriesData);
     const [wasInFullscreen, setWasInFullscreen] = useState(false);
+    const playNextCountdownInterval = useRef(null);
+    const playNextCheckInterval = useRef(null);
     const playerId = useRef(`player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`).current;
 
-    const [containerReady, setContainerReady] = useState(false);
+    const [containerReady, setContainerReady] = useState(false);    
     useEffect(() => {
         setContainerReady(false);
+        setPlayNextDismissed(false);
         const timeout = setTimeout(() => setContainerReady(true), 0);
         return () => clearTimeout(timeout);
     }, [id]);
@@ -360,14 +364,21 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
             if (!art.paused) {
                 postStatus('play', getStatusData());
                 startStatusInterval();
-            }
-
-            const shouldRestoreFullscreen = localStorage.getItem('restoreFullscreen');
+            }            const shouldRestoreFullscreen = sessionStorage.getItem('restoreFullscreen');
+            if (isDev) console.log('Checking fullscreen restoration:', shouldRestoreFullscreen);
             if (shouldRestoreFullscreen === 'true') {
-                localStorage.removeItem('restoreFullscreen');
-                setTimeout(() => {
+                sessionStorage.removeItem('restoreFullscreen');
+                if (isDev) console.log('Will restore fullscreen on first user interaction...');
+                
+                const restoreFullscreenOnInteraction = () => {
+                    if (isDev) console.log('User interacted - restoring fullscreen now');
                     art.fullscreen = true;
-                }, 500);
+                    art.off('click', restoreFullscreenOnInteraction);
+                    document.removeEventListener('keydown', restoreFullscreenOnInteraction);
+                };
+                
+                art.on('click', restoreFullscreenOnInteraction);
+                document.addEventListener('keydown', restoreFullscreenOnInteraction);
             }
         });
 
@@ -407,12 +418,8 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
         const handleEnd = () => {
             try {
                 postStatus('stop', getStatusData());
-                stopStatusInterval();
-
-                if (type === 'Episode' && currentSeriesData && nextEpisode) {
-
-                    if (art.fullscreen) {
-                        localStorage.setItem('restoreFullscreen', 'true');
+                stopStatusInterval();                if (type === 'Episode' && currentSeriesData && nextEpisode) {                    if (wasInFullscreen) {
+                        if (isDev) console.log('wasInFullscreen is true, sessionStorage flag should already be set');
                     }
 
                     const nextEpisodeUrl = `/watch?id=${nextEpisode.Id}&type=Episode&seriesId=${currentSeriesData.Id}`;
@@ -440,99 +447,105 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
                     window.location.href = '/';
                 }
             }
-        };
+        };        
         art.on('ended', handleEnd);
-        art.video.addEventListener('ended', handleEnd); 
-        let playNextCountdownInterval = null;
-        let playNextCheckInterval = null;
+        art.video.addEventListener('ended', handleEnd);
 
         if (type === 'Episode' && nextEpisode) {
-            playNextCheckInterval = setInterval(() => {
+            playNextCheckInterval.current = setInterval(() => {
                 if (art && art.duration && art.currentTime) {                    
                     const timeRemaining = art.duration - art.currentTime;
                     const playNextEnabled = getUserPreference('playNextEnabled', 'true') !== 'false';
                     
-                    if (isDev && timeRemaining <= 35) {
-                        console.log('Manual check - timeRemaining:', timeRemaining, 'playNextEnabled:', playNextEnabled, 'showPlayNext:', showPlayNext);
+                    if (isDev && timeRemaining <= 45) {
+                        console.log('Manual check - timeRemaining:', timeRemaining, 'playNextEnabled:', playNextEnabled, 'showPlayNext:', showPlayNext, 'dismissed:', playNextDismissed);
                     }
                     
-                    if (playNextEnabled && timeRemaining <= 30 && timeRemaining > 0 && !showPlayNext) {
-                        if (isDev) console.log('Showing Play Next via manual interval!');
-
-                        if (art.fullscreen) {
+                    if (playNextEnabled && timeRemaining <= 40 && timeRemaining > 0 && !showPlayNext && !playNextDismissed) {
+                        if (isDev) console.log('Showing Play Next via manual interval!');                        if (art.fullscreen) {
+                            if (isDev) console.log('User was in fullscreen (manual interval), exiting fullscreen and setting sessionStorage flag immediately');
                             setWasInFullscreen(true);
+                            sessionStorage.setItem('restoreFullscreen', 'true');
                             art.fullscreen = false;
                         }
+                        clearInterval(playNextCheckInterval.current);
+                        playNextCheckInterval.current = null;
                         
                         setShowPlayNext(true);
                         setPlayNextCountdown(Math.ceil(timeRemaining));
 
-                        playNextCountdownInterval = setInterval(() => {
+                        playNextCountdownInterval.current = setInterval(() => {
                             if (art && art.duration && art.currentTime) {
                                 const currentTimeRemaining = art.duration - art.currentTime;
-                                if (currentTimeRemaining <= 0) {
-                                    clearInterval(playNextCountdownInterval);
+                                if (currentTimeRemaining <= 0) {                                    clearInterval(playNextCountdownInterval.current);
+                                    playNextCountdownInterval.current = null;
                                     setShowPlayNext(false);
                                 } else {
                                     setPlayNextCountdown(Math.ceil(currentTimeRemaining));
+                                    
+                                    if (currentTimeRemaining <= 12 && !playNextDismissed) {
+                                        if (isDev) console.log('Auto-progressing at 12 seconds!');
+                                        clearInterval(playNextCountdownInterval.current);
+                                        playNextCountdownInterval.current = null;
+                                        setShowPlayNext(false);
+                                        handlePlayNext();
+                                    }
                                 }
-                            }                        }, 1000);
+                            }                        
+                        }, 1000);
                     }
 
-                    if (timeRemaining > 30 && showPlayNext) {
+                    if (timeRemaining > 40 && showPlayNext) {
                         setShowPlayNext(false);
-                        if (playNextCountdownInterval) {
-                            clearInterval(playNextCountdownInterval);
-                            playNextCountdownInterval = null;
+                        setPlayNextDismissed(false);
+                        if (playNextCountdownInterval.current) {
+                            clearInterval(playNextCountdownInterval.current);
+                            playNextCountdownInterval.current = null;
                         }
                     }
                 }
             }, 1000);
         }
         
-        const handleTimeUpdate = () => {
+        const handleTimeUpdate = () => {            
             if (type === 'Episode' && nextEpisode && art.duration && art.currentTime) {
-                const timeRemaining = art.duration - art.currentTime;
-
-                const playNextEnabled = getUserPreference('playNextEnabled', 'true') !== 'false';
-                if (isDev) console.log('Play Next Debug:', {
-                    type,
-                    hasNextEpisode: !!nextEpisode,
-                    duration: art.duration,
-                    currentTime: art.currentTime,
-                    timeRemaining,
-                    playNextEnabled,
-                    showPlayNext,
-                    isWithin15Seconds: timeRemaining <= 15,
-                    isPositive: timeRemaining > 0
-                });
-                  if (playNextEnabled && timeRemaining <= 30 && timeRemaining > 0 && !showPlayNext) {
-                    if (isDev) console.log('Showing Play Next!');
-
-                    if (art.fullscreen) {
+                const timeRemaining = art.duration - art.currentTime;                const playNextEnabled = getUserPreference('playNextEnabled', 'true') !== 'false';
+                  if (playNextEnabled && timeRemaining <= 40 && timeRemaining > 0 && !showPlayNext && !playNextDismissed) {
+                    if (isDev) console.log('Showing Play Next!');                    if (art.fullscreen) {
+                        if (isDev) console.log('User was in fullscreen (timeupdate), exiting fullscreen and setting sessionStorage flag immediately');
                         setWasInFullscreen(true);
+                        sessionStorage.setItem('restoreFullscreen', 'true');
                         art.fullscreen = false;
                     }
-                    
-                    setShowPlayNext(true);
+                      setShowPlayNext(true);
                     setPlayNextCountdown(Math.ceil(timeRemaining));
 
-                    playNextCountdownInterval = setInterval(() => {
+                    playNextCountdownInterval.current = setInterval(() => {
                         const currentTimeRemaining = art.duration - art.currentTime;
                         if (currentTimeRemaining <= 0) {
-                            clearInterval(playNextCountdownInterval);
+                            clearInterval(playNextCountdownInterval.current);
+                            playNextCountdownInterval.current = null;
                             setShowPlayNext(false);
                         } else {
                             setPlayNextCountdown(Math.ceil(currentTimeRemaining));
+                            
+                            if (currentTimeRemaining <= 12 && !playNextDismissed) {
+                                if (isDev) console.log('Auto-progressing at 12 seconds from timeupdate!');
+                                clearInterval(playNextCountdownInterval.current);
+                                playNextCountdownInterval.current = null;
+                                setShowPlayNext(false);
+                                handlePlayNext();
+                            }
                         }
-                    }, 1000);
+                    }, 1000);                
                 }
 
-                if (timeRemaining > 30 && showPlayNext) {
+                if (timeRemaining > 40 && showPlayNext) {
                     setShowPlayNext(false);
-                    if (playNextCountdownInterval) {
-                        clearInterval(playNextCountdownInterval);
-                        playNextCountdownInterval = null;
+                    setPlayNextDismissed(false);
+                    if (playNextCountdownInterval.current) {
+                        clearInterval(playNextCountdownInterval.current);
+                        playNextCountdownInterval.current = null;
                     }
                 }
             }
@@ -549,18 +562,15 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
                     }
                 }
             });
-        }
-
-        art.on('progress', () => {
+        }        art.on('progress', () => {
             if (type === 'Episode' && nextEpisode && art.duration && art.currentTime) {
                 const timeRemaining = art.duration - art.currentTime;
                 const playNextEnabled = getUserPreference('playNextEnabled', 'true') !== 'false';
-                
-                if (isDev && timeRemaining <= 20) {
-                    console.log('Progress event - timeRemaining:', timeRemaining, 'playNextEnabled:', playNextEnabled);
+                  if (isDev && timeRemaining <= 45) {
+                    console.log('Progress event - timeRemaining:', timeRemaining, 'playNextEnabled:', playNextEnabled, 'dismissed:', playNextDismissed);
                 }
                 
-                if (playNextEnabled && timeRemaining <= 15 && timeRemaining > 0 && !showPlayNext) {
+                if (playNextEnabled && timeRemaining <= 40 && timeRemaining > 0 && !showPlayNext && !playNextDismissed) {
                     if (isDev) console.log('Showing Play Next via progress event!');
                     setShowPlayNext(true);
                     setPlayNextCountdown(Math.ceil(timeRemaining));
@@ -570,17 +580,17 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
 
         art.on('loadeddata', () => {
             if (isDev) console.log('Video loadeddata event fired');
-        });       
-        const cleanupPlayNext = () => {
-            if (playNextCountdownInterval) {
-                clearInterval(playNextCountdownInterval);
-                playNextCountdownInterval = null;
+        });        const cleanupPlayNext = () => {
+            if (playNextCountdownInterval.current) {
+                clearInterval(playNextCountdownInterval.current);
+                playNextCountdownInterval.current = null;
             }
-            if (playNextCheckInterval) {
-                clearInterval(playNextCheckInterval);
-                playNextCheckInterval = null;
+            if (playNextCheckInterval.current) {
+                clearInterval(playNextCheckInterval.current);
+                playNextCheckInterval.current = null;
             }
             setShowPlayNext(false);
+            setPlayNextDismissed(false);
         };
 
         const audioPref = getUserPreference('audioPref', null);
@@ -699,32 +709,29 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
         };
     }, [src, poster, status, stopPlayback, stopPlaybackSilent, containerReady]);    const handleCloseStats = () => {
         setShowStats(false);
-    };
-
-    const handlePlayNext = () => {
-        if (nextEpisode && currentSeriesData) {
-
-            if (artRef.current?.art) {
-                try {
-                    postStatus('stop', getStatusData());
-                } catch (error) {
-                    if (isDev) console.warn('Failed to send stop status:', error);
-                }
-            }
-
-            const nextEpisodeUrl = `/watch?id=${nextEpisode.Id}&type=Episode&seriesId=${currentSeriesData.Id}`;
-            if (isDev) console.log('Manually progressing to next episode:', nextEpisodeUrl);
-
-            if (wasInFullscreen) {
-                localStorage.setItem('restoreFullscreen', 'true');
+    };    const handlePlayNext = () => {
+        if (nextEpisode && currentSeriesData) {            const nextEpisodeUrl = `/watch?id=${nextEpisode.Id}&type=Episode&seriesId=${currentSeriesData.Id}`;
+            if (isDev) console.log('Manually progressing to next episode:', nextEpisodeUrl);            if (wasInFullscreen) {
+                if (isDev) console.log('wasInFullscreen is true, sessionStorage flag should already be set');
             }
             
             router.replace(nextEpisodeUrl);
         }
-    };
-
-    const handleCancelPlayNext = () => {
+    };    const handleCancelPlayNext = () => {
         setShowPlayNext(false);
+        setPlayNextDismissed(true);
+        
+        // Clear any active intervals
+        if (playNextCountdownInterval.current) {
+            clearInterval(playNextCountdownInterval.current);
+            playNextCountdownInterval.current = null;
+        }
+        if (playNextCheckInterval.current) {
+            clearInterval(playNextCheckInterval.current);
+            playNextCheckInterval.current = null;
+        }
+        
+        if (isDev) console.log('PlayNext dismissed - will not auto-progress at 12 seconds');
     };
 
     if (status !== 'playing') return null;

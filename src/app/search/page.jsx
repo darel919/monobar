@@ -1,10 +1,10 @@
 "use server";
 
 import { search, getRecommendations } from '@/lib/api';
-import LibraryViewDisplay from '@/components/libraryViewDisplay';
+import LibraryViewDisplay from '@/components/LibraryViewDisplay';
 import SearchForm from '@/components/SearchForm';
 import { getSearchTypeDisplayName } from '@/lib/searchUtils';
-import GenresView from '@/components/GenresView';
+import GenresView from '@/components/GenreViewDisplay';
 import { Suspense } from 'react';
 
 export default async function SearchPage({ searchParams }) {  

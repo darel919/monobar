@@ -15,7 +15,23 @@ export default function Navbar() {
   const [isHydrated, setIsHydrated] = useState(false);  
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { isAuthenticated, userSession, clearAuth, isLoading } = useAuthStore();
+  const { isAuthenticated, userSession, clearAuth, isLoading, jellyAccessToken, jellyUserId } = useAuthStore();
+
+  const fetchHomeData = async (forceRefresh = false) => {
+    try {
+      if (forceRefresh) {
+        sessionStorage.removeItem('homeData');
+      }
+      
+      const data = await getHome();
+      if (data?.length) {
+        setHomeData(data);
+        sessionStorage.setItem('homeData', JSON.stringify(data));
+      }
+    } catch (err) {
+      console.error('Failed to load libraries:', err);
+    }
+  };
 
   useEffect(() => {
     setIsHydrated(true);
@@ -23,20 +39,15 @@ export default function Navbar() {
     if (cached) {
       setHomeData(JSON.parse(cached));
     } else {
-      const fetchHomeData = async () => {
-        try {
-          const data = await getHome();
-          if (data?.length) {
-            setHomeData(data);
-            sessionStorage.setItem('homeData', JSON.stringify(data));
-          }
-        } catch (err) {
-          console.error('Failed to load libraries:', err);
-        }
-      };
       fetchHomeData();
     }
   }, []);
+
+  useEffect(() => {
+    if (isHydrated && jellyAccessToken && jellyUserId) {
+      fetchHomeData(true);
+    }
+  }, [jellyAccessToken, jellyUserId, isHydrated]);
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 0);
