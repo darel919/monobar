@@ -27,7 +27,7 @@ export async function generateMetadata({ searchParams }) {
     }
   } catch (err) {
     console.error("Error generating metadata:", err);
-    // title = "moNobar Library - Error";
+
   }
   return { title };
 }

@@ -11,7 +11,6 @@ export default function SettingsPage() {
     });
     const [isLoaded, setIsLoaded] = useState(false);
 
-    // Load settings from localStorage on component mount
     useEffect(() => {
         const savedSettings = {
             playTrailersAutomatically: localStorage.getItem('playTrailersAutomatically') !== 'false',
@@ -19,7 +18,7 @@ export default function SettingsPage() {
         };
         setSettings(savedSettings);
         setIsLoaded(true);
-    }, []);    // Apply theme changes immediately
+    }, []);   
     useEffect(() => {
         if (!isLoaded) return;
         
@@ -28,7 +27,7 @@ export default function SettingsPage() {
             console.log('Settings: Applying theme:', theme);
             if (theme === 'system') {
                 html.removeAttribute('data-theme');
-                // Check system preference and apply accordingly
+
                 if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
                     html.setAttribute('data-theme', 'dark');
                     console.log('Settings: Applied mydark theme (system preference)');
@@ -46,7 +45,7 @@ export default function SettingsPage() {
                 html.setAttribute('data-theme', theme);
                 console.log('Settings: Applied theme:', theme);
             }
-              // Debug: Check computed styles
+
             setTimeout(() => {
                 const computedStyle = getComputedStyle(document.body);
                 const rootStyle = getComputedStyle(document.documentElement);
@@ -71,7 +70,6 @@ export default function SettingsPage() {
         localStorage.setItem('theme', settings.theme);
     }, [settings.theme, isLoaded]);
 
-    // Save trailer setting to localStorage
     useEffect(() => {
         if (!isLoaded) return;
         localStorage.setItem('playTrailersAutomatically', settings.playTrailersAutomatically.toString());

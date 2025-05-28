@@ -300,7 +300,9 @@ export async function updateState(genSessionId) {
     if (!genSessionId) {
         console.warn("No session ID provided for updateState");
         return;
-    }    try {        const headers = {
+    }    
+    try {        
+        const headers = {
             'Content-Type': 'application/json',
             'User-Agent': 'dp-Monobar',
             'X-Environment': getEnvironmentHeader(),

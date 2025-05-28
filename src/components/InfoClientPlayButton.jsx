@@ -30,10 +30,10 @@ export default function ClientPlayButton({ id, type, playUrl, seriesData }) {
             }
         }
         detectIsHome();
-    }, []);
-
-    useEffect(() => {
-        let mounted = true;        
+    }, []);    useEffect(() => {
+        let mounted = true;   
+        if(typeof window === 'undefined') return;
+             
         const fetchPlaybackData = async () => {
             if (!id || !type || !playUrl) {
                 setError('Missing required parameters');
@@ -41,12 +41,14 @@ export default function ClientPlayButton({ id, type, playUrl, seriesData }) {
                 return;
             }
 
-            // For TV series, use nextUpEpisode if available
+            console.log(`InfoClientPlayButton: Fetching playback data for ${type} ${id}`);
+
             let actualPlayUrl = playUrl;
             let actualId = id;
             let actualType = type;
             
             if (type === 'Series' && seriesData?.nextUpEpisode?.playUrl) {
+                console.log('InfoClientPlayButton: Using next up episode for series playback');
                 actualPlayUrl = seriesData.nextUpEpisode.playUrl;
                 actualId = seriesData.nextUpEpisode.Id;
                 actualType = 'Episode';
@@ -65,6 +67,8 @@ export default function ClientPlayButton({ id, type, playUrl, seriesData }) {
                     headers['Authorization'] = `monobar_user=${jellyUserId},monobar_token=${jellyAccessToken}`;
                 }
 
+                console.log(`InfoClientPlayButton: Making request to ${actualPlayUrl}`);
+
                 const response = await fetch(actualPlayUrl, {
                     method: 'GET',
                     headers
@@ -81,9 +85,11 @@ export default function ClientPlayButton({ id, type, playUrl, seriesData }) {
                     throw new Error('Invalid playback response from server');
                 }
 
+                console.log('InfoClientPlayButton: Playback data received successfully');
                 setPlaybackData({ ...data, episodeId: actualId, episodeType: actualType });
                 setError(null);
             } catch (err) {
+                console.error('InfoClientPlayButton: Error fetching playback data:', err);
                 if (mounted) {
                     setError(err.message);
                 }
@@ -106,14 +112,36 @@ export default function ClientPlayButton({ id, type, playUrl, seriesData }) {
     const handleCantPlay = () => {
         alert("Cannot play this title. Please try another title.");
     };
-      const handlePlay = () => {
+
+    const handlePlay = () => {
+        console.log(`InfoClientPlayButton: Play button clicked for ${type} ${id}`);
         setIsLoading(true);
         if (playbackData) {
             if (type === 'Series' && playbackData.episodeId) {
-                router.push(`/watch?id=${playbackData.episodeId}&type=${playbackData.episodeType}&seriesId=${id}`);
+
+                const watchUrl = `/watch?id=${playbackData.episodeId}&type=${playbackData.episodeType}&seriesId=${id}`;
+                console.log(`InfoClientPlayButton: Navigating to series episode: ${watchUrl}`);
+                router.push(watchUrl);
+            } else if (type === 'Episode') {
+
+                const urlParams = new URLSearchParams(window.location.search);
+                const currentSeriesId = urlParams.get('seriesId');
+                let watchUrl;
+                if (currentSeriesId) {
+                    watchUrl = `/watch?id=${id}&type=${type}&seriesId=${currentSeriesId}`;
+                } else {
+                    watchUrl = `/watch?id=${id}&type=${type}`;
+                }
+                console.log(`InfoClientPlayButton: Navigating to episode: ${watchUrl}`);
+                router.push(watchUrl);
             } else {
-                router.push(`/watch?id=${id}&type=${type}`);
+
+                const watchUrl = `/watch?id=${id}&type=${type}`;
+                console.log(`InfoClientPlayButton: Navigating to content: ${watchUrl}`);
+                router.push(watchUrl);
             }
+        } else {
+            console.warn('InfoClientPlayButton: No playback data available for play action');
         }
     };
 
@@ -140,6 +168,8 @@ export default function ClientPlayButton({ id, type, playUrl, seriesData }) {
             </button>
         );
     }
+
+    
 
     return (
         <button 

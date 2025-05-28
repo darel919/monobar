@@ -11,7 +11,6 @@ export default function WatchBackdropDisplay({ backdrop, src, className, playTra
   const iframeRef = useRef(null);
   const playerRef = useRef(null);
   const containerRef = useRef(null);
-  
   useEffect(() => {
     const isDev = process.env.NODE_ENV === 'development';
     if (isDev) {
@@ -19,11 +18,14 @@ export default function WatchBackdropDisplay({ backdrop, src, className, playTra
       return;
     }
     
-    const playTrailersAutomatically = localStorage.getItem('playTrailersAutomatically');
-    setShouldPlayTrailer(playTrailersAutomatically === 'true' && playTrailer);
+    if (typeof window !== 'undefined') {
+      const playTrailersAutomatically = localStorage.getItem('playTrailersAutomatically');
+      setShouldPlayTrailer(playTrailersAutomatically !== 'false' && playTrailer);
+    }
   }, [playTrailer]);
-  
-  useEffect(() => {
+    useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     const tag = document.createElement('script');
     tag.src = 'https://www.youtube.com/iframe_api';
     const firstScriptTag = document.getElementsByTagName('script')[0];
@@ -96,7 +98,8 @@ export default function WatchBackdropDisplay({ backdrop, src, className, playTra
       if (playerRef.current && playerRef.current.destroy) {
         playerRef.current.destroy();
         playerRef.current = null;
-      }    };
+      }    
+    };
   }, [videoId, videoEnded, isInViewport, shouldPlayTrailer]);
   
   return (

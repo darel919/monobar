@@ -164,7 +164,8 @@ export default async function InfoPage({ searchParams }) {
           ) : (
             <p className="text-xs mb-1">No subtitles available</p>
           )}
-        </section>        <div className="overflow-hidden md:relative my-4">
+        </section>        
+        <div className="overflow-hidden md:relative my-4">
           <h2 className="text-lg leading-[1.6] sm:leading-[1.75] mt-4 md:after:absolute md:after:bottom-0 md:after:left-0 md:after:w-full md:after:h-32">{infoData.Overview}</h2>
         </div>
         {infoData.playUrl && <ClientPlayButton id={id} type={type} playUrl={infoData.playUrl} seriesData={type === 'Series' ? infoData : null} />}
@@ -190,7 +191,8 @@ export default async function InfoPage({ searchParams }) {
         <section className="px-8 my-4">
         <p className="font-bold w-fit p-2 text-white">Similar to {infoData.Name}</p>
           <LibraryViewDisplay data={infoData.recommendation} viewMode="recommendation" />
-        </section>      )}
+        </section>      
+      )}
     </div>
     </>
   );

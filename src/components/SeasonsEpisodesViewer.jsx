@@ -6,12 +6,36 @@ import { useRouter } from "next/navigation";
 export default function SeasonsEpisodesViewer({ seriesData, currentEpisodeId, mode = "info" }) {
     const [selectedSeason, setSelectedSeason] = useState(null);
     const [selectedEpisode, setSelectedEpisode] = useState(null);
+    const [nextEpisode, setNextEpisode] = useState(null);
     const router = useRouter();
     const isWatchMode = mode === "watch";
-    const currentEpisodeRef = useRef(null);    
+    const currentEpisodeRef = useRef(null);
+    const nextEpisodeRef = useRef(null);
+
+    const findNextEpisode = (currentId) => {
+        if (!seriesData?.availableSeasons) return null;
+
+        for (const season of seriesData.availableSeasons) {
+            const episodeIndex = season.episodes?.findIndex(ep => ep.Id === currentId);
+            if (episodeIndex !== -1 && episodeIndex !== undefined) {
+                if (episodeIndex < season.episodes.length - 1) {
+                    return season.episodes[episodeIndex + 1];
+                }
+                
+                const seasonIndex = seriesData.availableSeasons.indexOf(season);
+                for (let i = seasonIndex + 1; i < seriesData.availableSeasons.length; i++) {
+                    if (seriesData.availableSeasons[i].episodes?.length > 0) {
+                        return seriesData.availableSeasons[i].episodes[0];
+                    }
+                }
+                break;
+            }
+        }
+        return null;
+    };
+
     useEffect(() => {
         if (seriesData?.availableSeasons?.length > 0) {
-            // Find the season containing the current episode or default to first season
             let targetSeason = seriesData.availableSeasons[0];
             let targetEpisode = null;
 
@@ -35,7 +59,13 @@ export default function SeasonsEpisodesViewer({ seriesData, currentEpisodeId, mo
         }
     }, [seriesData, currentEpisodeId]);
 
-    // Auto-scroll to current episode
+    useEffect(() => {
+        if (currentEpisodeId) {
+            const next = findNextEpisode(currentEpisodeId);
+            setNextEpisode(next);
+        }
+    }, [currentEpisodeId, seriesData]);
+
     useEffect(() => {
         if (currentEpisodeId && currentEpisodeRef.current) {
             const scrollTimeout = setTimeout(() => {
@@ -54,7 +84,9 @@ export default function SeasonsEpisodesViewer({ seriesData, currentEpisodeId, mo
         if (season.episodes?.length > 0) {
             setSelectedEpisode(season.episodes[0]);
         }
-    };    const handleEpisodeClick = (episode) => {
+    };
+
+    const handleEpisodeClick = (episode) => {
         setSelectedEpisode(episode);
         router.push(`/watch?id=${episode.Id}&type=Episode&seriesId=${seriesData.Id}`);
     };
@@ -87,8 +119,10 @@ export default function SeasonsEpisodesViewer({ seriesData, currentEpisodeId, mo
                 <p>No seasons available</p>
             </div>
         );
-    }    return (
-        <div className={`flex ${isWatchMode ? 'flex-col h-full bg-base-200' : 'flex-col'}`}>
+    }
+
+    return (
+        <div className={`flex ${isWatchMode ? 'flex-col h-full' : 'flex-col'}`}>
             {/* Season Selector */}
             <div className={`p-4 border-b border-base-300 ${isWatchMode ? '' : 'bg-base-200'}`}>
                 <h3 className={`font-semibold mb-3 ${isWatchMode ? 'text-lg' : 'text-xl'}`}>Seasons</h3>
@@ -107,29 +141,31 @@ export default function SeasonsEpisodesViewer({ seriesData, currentEpisodeId, mo
                         </button>
                     ))}
                 </div>
-            </div>            {/* Episodes List */}
-            <div className={`flex-1 ${isWatchMode ? 'lg:overflow-y-auto' : 'overflow-y-auto'}`}>
+            </div>
+
+            {/* Episodes List */}
+            <div className={`flex-1 ${isWatchMode ? 'md:overflow-y-auto' : 'overflow-y-auto'}`}>
                 {selectedSeason?.episodes?.length > 0 ? (
                     <div className="p-4 space-y-3">
                         <h4 className={`font-semibold mb-3 ${isWatchMode ? 'text-sm' : 'text-md'}`}>
                             Episodes ({selectedSeason.episodes.length})
-                        </h4>                        {selectedSeason.episodes.map((episode, index) => (
-                            <div
+                        </h4>
+                        {selectedSeason.episodes.map((episode, index) => (
+                            <div 
                                 key={episode.Id}
-                                ref={currentEpisodeId === episode.Id ? currentEpisodeRef : null}
+                                ref={currentEpisodeId === episode.Id ? currentEpisodeRef : 
+                                     nextEpisode?.Id === episode.Id ? nextEpisodeRef : null}
                                 onClick={() => handleEpisodeClick(episode)}
-                                className={`p-3 rounded-lg cursor-pointer transition-colors border ${
-                                    currentEpisodeId === episode.Id
-                                        ? 'bg-primary/20 border-primary'
-                                        : selectedEpisode?.Id === episode.Id
-                                        ? 'bg-base-300 border-base-300'
-                                        : 'bg-base-100 border-base-300 hover:bg-base-200'
-                                }`}
+                                className={`p-3 rounded-lg cursor-pointer transition-colors border 
+                                    ${currentEpisodeId === episode.Id ? 'bg-primary/20 border-primary' : 
+                                      nextEpisode?.Id === episode.Id ? 'bg-secondary/20 border-secondary' :
+                                      selectedEpisode?.Id === episode.Id ? 'bg-base-300 border-base-300' : 
+                                      'bg-base-100 border-base-300 hover:bg-base-200'}`}
                             >
                                 <div className={`flex items-start gap-3 ${isWatchMode ? 'flex-col' : ''}`}>
                                     {/* Episode Thumbnail */}
                                     <div className={`flex-shrink-0 bg-base-300 rounded overflow-hidden ${
-                                        isWatchMode ? 'w-full h-20' : 'w-24 h-14'
+                                        isWatchMode ? 'w-full h-24' : 'w-24 h-14'
                                     }`}>
                                         {episode.ImageTags?.Primary ? (
                                             <img
@@ -148,21 +184,22 @@ export default function SeasonsEpisodesViewer({ seriesData, currentEpisodeId, mo
 
                                     {/* Episode Info */}
                                     <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
+                                        <div className="flex items-center gap-2">
                                             <span className={`font-medium text-primary ${isWatchMode ? 'text-xs' : 'text-sm'}`}>
-                                                {episode.IndexNumber || index + 1}
+                                                {episode.IndexNumber + '.' || index + 1}
                                             </span>
                                             <h5 className={`font-semibold truncate ${isWatchMode ? 'text-sm' : ''}`}>
                                                 {episode.Name}
                                             </h5>
+                                            {episode.RunTimeTicks && (
+                                                <p className="text-xs opacity-50">{formatRuntime(episode.RunTimeTicks)}</p>
+                                            )}
                                         </div>
                                         
-                                        <div className={`flex items-center gap-3 text-gray-500 mb-2 ${
+                                        <div className={`flex items-center text-gray-500 mb-2 ${
                                             isWatchMode ? 'text-xs flex-col items-start gap-1' : 'text-xs'
                                         }`}>
-                                            {episode.RunTimeTicks && (
-                                                <span>{formatRuntime(episode.RunTimeTicks)}</span>
-                                            )}
+
                                             {episode.PremiereDate && (
                                                 <span>{formatDate(episode.PremiereDate)}</span>
                                             )}
@@ -191,6 +228,13 @@ export default function SeasonsEpisodesViewer({ seriesData, currentEpisodeId, mo
                                         <span className={`text-primary font-medium ${isWatchMode ? 'text-xs' : 'text-xs'}`}>
                                             Currently Playing
                                         </span>
+                                    </div>
+                                )}
+
+                                {/* Next Episode Indicator */}
+                                {nextEpisode?.Id === episode.Id && isWatchMode && (
+                                    <div className="mt-2 flex items-center gap-2">
+                                        <span className="text-secondary font-medium text-xs">Up Next</span>
                                     </div>
                                 )}
                             </div>

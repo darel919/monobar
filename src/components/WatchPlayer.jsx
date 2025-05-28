@@ -14,13 +14,17 @@ import StatsForNerds from "./WatchPlayerStats";
 export default function Player({ poster, fullData, id, type }) {
     const artRef = useRef();    
     const router = useRouter();
-    const isDev = process.env.NODE_ENV === 'development';
-    const stopPlayback = usePlaybackStore(useCallback(state => state.stopPlayback, []));
+    const isDev = process.env.NODE_ENV === 'development';    const stopPlayback = usePlaybackStore(useCallback(state => state.stopPlayback, []));
     const stopPlaybackSilent = usePlaybackStore(useCallback(state => state.stopPlaybackSilent, []));
+    const setActivePlayer = usePlaybackStore(useCallback(state => state.setActivePlayer, []));
+    const clearActivePlayer = usePlaybackStore(useCallback(state => state.clearActivePlayer, []));
+    const setCleanupCallback = usePlaybackStore(useCallback(state => state.setCleanupCallback, []));
     const status = usePlaybackStore(useCallback(state => state.status, []));
     const src = usePlaybackStore(useCallback(state => state.src, []));
     const [playbackEnded, setPlaybackEnded] = useState(false);
     const [showStats, setShowStats] = useState(false);
+    const [playerMounted, setPlayerMounted] = useState(false);
+    const playerId = useRef(`player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`).current;
 
     useEffect(() => {
         if (playbackEnded) {
@@ -96,9 +100,8 @@ export default function Player({ poster, fullData, id, type }) {
             const jellyUserId = Cookies.get('jellyUserId');
             if (jellyAccessToken && jellyUserId) {
                 headers['Authorization'] = `monobar_user=${jellyUserId},monobar_token=${jellyAccessToken}`;
-            }
-        } catch (error) {
-            console.warn('Could not access Jelly auth cookies:', error);
+            }        } catch (error) {
+            if (isDev) console.warn('Could not access Jelly auth cookies:', error);
         }
 
         return fetch(`${API_BASE_URL}/status`, {
@@ -110,11 +113,20 @@ export default function Player({ poster, fullData, id, type }) {
                 ...data 
             })
         });
-    }
-
-    useEffect(() => {
+    }    useEffect(() => {
         if (!poster || !src || status !== 'playing') return;
         if (!artRef.current) return;
+
+        if (playerMounted || artRef.current.art) {
+            if (isDev) console.warn('Player already mounted, skipping initialization');
+            return;
+        }
+
+        setActivePlayer(playerId);
+        setPlayerMounted(true);
+        
+        if (isDev) console.log(`Initializing player ${playerId} for ${type} content`);
+        
         Artplayer.AUTO_PLAYBACK_TIMEOUT = 15000;
         Artplayer.RECONNECT_SLEEP_TIME  = 3000;
         Artplayer.RECONNECT_TIME_MAX  = 7;
@@ -210,10 +222,30 @@ export default function Player({ poster, fullData, id, type }) {
                             maxMaxBufferLength: 180,                            
                             xhrSetup: xhr => {
                                 xhr.setRequestHeader('X-Environment', getEnvironmentHeader());
+
+                                try {
+                                    const Cookies = require('js-cookie');
+                                    const jellyAccessToken = Cookies.get('jellyAccessToken');
+                                    const jellyUserId = Cookies.get('jellyUserId');
+                                    if (jellyAccessToken && jellyUserId) {
+                                        xhr.setRequestHeader('Authorization', `monobar_user=${jellyUserId},monobar_token=${jellyAccessToken}`);
+                                    }                                } catch (error) {
+                                    if (isDev) console.warn('Could not access auth cookies for HLS request:', error);
+                                }
                             }
                         });
-                        
-                        hls.on(Hls.Events.ERROR, function (event, data) {
+                          hls.on(Hls.Events.ERROR, function (event, data) {
+                            if (isDev) console.error('HLS Error:', event, data);
+                            
+                            if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                                if (data.response && data.response.code === 401) {
+                                    alert('Unauthorized accessing fragments.');
+
+                                    router.replace('/');
+                                    return;
+                                }
+                            }
+                            
                             if (data.fatal) {
                                 handlePlayerError(data);
                             }
@@ -269,14 +301,15 @@ export default function Player({ poster, fullData, id, type }) {
             };
         }
         
-        let timeupdateInterval = null;
-
+        let timeupdateInterval = null;        
         const startStatusInterval = () => {
             if (timeupdateInterval) clearInterval(timeupdateInterval);
             timeupdateInterval = setInterval(() => {
                 postStatus('timeupdate', getStatusData());
             }, 3000);
-        };        const stopStatusInterval = () => {
+        };
+        
+        const stopStatusInterval = () => {
             if (timeupdateInterval) {
                 clearInterval(timeupdateInterval);
                 timeupdateInterval = null;
@@ -329,14 +362,24 @@ export default function Player({ poster, fullData, id, type }) {
                 postStatus('stop', getStatusData());
                 stopStatusInterval();
                 stopPlayback();
-                if (id && type) {
+                
+
+                if (type === 'Episode' && fullData?.SeriesId) {
+                    router.replace(`/info?id=${fullData.SeriesId}&type=Series`);
+                } else if (id && type) {
+                    router.replace(`/info?id=${id}&type=${type}`);
+                } else {
+                    router.replace('/');
+                }            } catch (error) {
+                if (isDev) console.error('Error during playback end:', error);
+
+                if (type === 'Episode' && fullData?.SeriesId) {
+                    window.location.href = `/info?id=${fullData.SeriesId}&type=Series`;
+                } else if (id && type) {
                     window.location.href = `/info?id=${id}&type=${type}`;
                 } else {
                     window.location.href = '/';
                 }
-            } catch (error) {
-                console.error('Error during playback end:', error);
-                window.location.href = id && type ? `/info?id=${id}&type=${type}` : '/';
             }
         };
         art.on('ended', handleEnd);
@@ -359,9 +402,8 @@ export default function Player({ poster, fullData, id, type }) {
                 }
             }
         }
-        if (art.hls) {
-            art.hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
-                console.warn('Level switched:', data);
+        if (art.hls) {            art.hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
+                if (isDev) console.warn('Level switched:', data);
                 userQualitySelected = true;
                 const levelIdx = data.level;
                 const level = art.hls.levels[levelIdx];
@@ -369,44 +411,90 @@ export default function Player({ poster, fullData, id, type }) {
                     const qualitySetting = art.setting.find(s => s.html === 'Quality');
                     if (qualitySetting) {
                         qualitySetting.tooltip = level.height + 'P';
-                    }
-                }
+                    }                }
                 if (level && level.height) {
                     setUserPreference('qualityPref', level.height + 'P');
                 }
             });
         }
-        artRef.current.art = art;        
+        artRef.current.art = art;
+
+        const immediateCleanup = () => {
+            if (isDev) console.log(`Immediate HLS cleanup for ${playerId}`);
+            
+
+            stopStatusInterval();
+            if (isDev) console.log(`Stopped status interval for ${playerId}`);
+
+            if (art && art.hls) {
+                try {
+                    art.hls.stopLoad();
+                    if (typeof art.hls.destroy === 'function') {
+                        art.hls.destroy();
+                        art.hls = null;
+                    }
+                } catch (error) {
+                    if (isDev) console.warn('Error during immediate HLS cleanup:', error);
+                }
+            }
+        };
+        setCleanupCallback(immediateCleanup);
+        
         return () => {
+            if (isDev) console.log(`WatchPlayer cleanup initiated for ${playerId}`);
+
+            if (art && art.hls && typeof art.hls.destroy === 'function') {
+                if (isDev) console.log(`Immediately stopping HLS for ${playerId} to prevent segment fetching`);
+                try {
+                    art.hls.stopLoad();
+                    art.hls.destroy();
+                    art.hls = null;
+                } catch (error) {
+                    if (isDev) console.warn('Error stopping HLS during immediate cleanup:', error);
+                }
+            }
+
+            stopStatusInterval();
+            if (isDev) console.log(`Stopped status interval for ${playerId} during immediate cleanup`);
+            
+
+            const isRealCleanup = process.env.NODE_ENV !== 'development' || 
+                                  document.visibilityState === 'hidden' ||
+                                  window.location.pathname !== '/watch';            if (!isRealCleanup) {
+                if (isDev) console.log(`Skipping full cleanup for ${playerId} - likely React strict mode, but HLS already stopped`);
+                setPlayerMounted(false);
+                return;
+            }
+            
             clearInterval(timeupdateInterval);            
             setShowStats(false);
+            setPlayerMounted(false);
+
+            clearActivePlayer(playerId);
+            
             if (art && typeof art.destroy === 'function') {
+                if (isDev) console.log(`Destroying player instance ${playerId}`);
                 art.off('error', handlePlayerError);
                 art.off('ended', handleEnd);
                 art.video.removeEventListener('ended', handleEnd);
-                
-                // Clean up HLS instance before destroying the player
-                if (art.hls && typeof art.hls.destroy === 'function') {
-                    try {
-                        art.hls.destroy();
-                        art.hls = null;
-                    } catch (error) {
-                        console.warn('Error destroying HLS instance:', error);
-                    }
-                }
-                
-                // Fire and forget the stop status - don't await it
+
                 try {
                     postStatus('stop', getStatusData()).catch(error => {
-                        console.warn('Stop status failed:', error);
+                        if (isDev) console.warn('Stop status failed:', error);
                     });
                 } catch (error) {
-                    console.warn('Unable to send stop status during cleanup:', error);
+                    if (isDev) console.warn('Unable to send stop status during cleanup:', error);
                 }
                 
                 stopPlaybackSilent();
                 art.destroy(false);
+
+                if (artRef.current) {
+                    artRef.current.art = null;
+                }
             }
+            
+            if (isDev) console.log(`WatchPlayer cleanup completed for ${playerId}`);
         };
     }, [src, poster, status, stopPlayback, stopPlaybackSilent]);
 
