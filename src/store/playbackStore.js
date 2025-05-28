@@ -2,12 +2,12 @@ import { API_BASE_URL, updateState } from '@/lib/api';
 import { getOrCreateGenSessionId } from '@/lib/genSessionId';
 import { create } from 'zustand';
 
-const usePlaybackStore = create((set, get) => ({
-    src: null,
+const usePlaybackStore = create((set, get) => ({    src: null,
     status: 'idle',
     error: null,
     cleanupCallback: null,
     activePlayerId: null,
+    currentContentId: null,
     
     setCleanupCallback: (callback) => {
         set({ cleanupCallback: callback });
@@ -32,25 +32,27 @@ const usePlaybackStore = create((set, get) => ({
         if (activePlayerId === playerId) {
             set({ activePlayerId: null });
         }
-    },    
-    initializePlayback: async (id, type) => {
+    },      initializePlayback: async (id, type) => {
         if (process.env.NODE_ENV === 'development') {
             console.log(`PlaybackStore: Initializing playback for ${type} ${id}`);
         }
         if(id && type) {
-            try {
-
+            try {                
                 const currentState = get();
-                if (currentState.status === 'playing' && currentState.src) {
-                    if (process.env.NODE_ENV === 'development') console.log('PlaybackStore: Already have active playback, skipping re-initialization');
-                    return;
-                }
+                
 
-                const { cleanupCallback, activePlayerId } = get();
+                const shouldInitialize = !currentState.src || 
+                                       currentState.status !== 'playing' ||
+                                       currentState.currentContentId !== id;
+                
+                if (!shouldInitialize) {
+                    if (process.env.NODE_ENV === 'development') console.log('PlaybackStore: Same content already playing, skipping re-initialization');
+                    return;
+                }                const { cleanupCallback, activePlayerId } = get();
                 if (cleanupCallback) {
                     if (process.env.NODE_ENV === 'development') console.log('PlaybackStore: Cleaning up existing playback before initializing new one');
                     await cleanupCallback();
-                    set({ cleanupCallback: null });
+                    set({ cleanupCallback: null, src: null, status: 'idle' });
                 }
                 if (activePlayerId) {
                     if (process.env.NODE_ENV === 'development') console.log(`PlaybackStore: Clearing previous active player ${activePlayerId} before initializing new one`);
@@ -93,7 +95,8 @@ const usePlaybackStore = create((set, get) => ({
                 set({
                     src: data.playbackUrl,
                     status: 'playing',
-                    error: null
+                    error: null,
+                    currentContentId: id
                 });
             } catch (error) {
                 if (process.env.NODE_ENV === 'development') console.error('PlaybackStore: Failed to initialize playback:', error);
@@ -136,14 +139,14 @@ const usePlaybackStore = create((set, get) => ({
         } catch (error) {
             if (process.env.NODE_ENV === 'development') {
                  console.error('Unable to report stopped playback status!\n', error);
-            }
-        } finally {
+            }        } finally {
             set({ 
                 status: 'stopped',
                 src: null,
                 error: null,
                 cleanupCallback: null,
-                activePlayerId: null
+                activePlayerId: null,
+                currentContentId: null
             });
         }
     },
@@ -154,13 +157,13 @@ const usePlaybackStore = create((set, get) => ({
             cleanupCallback();
         }        if (activePlayerId) {
             if (process.env.NODE_ENV === 'development') console.log(`Silently clearing active player ${activePlayerId}`);
-        }
-        set({ 
+        }        set({ 
             status: 'stopped',
             src: null,
             error: null,
             cleanupCallback: null,
-            activePlayerId: null
+            activePlayerId: null,
+            currentContentId: null
         });
     },
 }));

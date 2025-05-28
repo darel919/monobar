@@ -13,6 +13,7 @@ export default function WatchPage() {
     const [seriesData, setSeriesData] = useState(null);
     const [fetchError, setFetchError] = useState(null);
     const [pageActive, setPageActive] = useState(true);
+    const [currentEpisodeId, setCurrentEpisodeId] = useState(null);
     const searchParams = useSearchParams();
     const router = useRouter();
     const id = searchParams.get('id');
@@ -22,31 +23,34 @@ export default function WatchPage() {
     const error = usePlaybackStore(state => state.error);
     const initializePlayback = usePlaybackStore(state => state.initializePlayback);
     const stopPlayback = usePlaybackStore(state => state.stopPlayback);
-    const isDev = process.env.NODE_ENV === "development";
-
-    useEffect(() => {
+    const isDev = process.env.NODE_ENV === "development";    useEffect(() => {
         let mounted = true;
 
         async function fetchData() {
             if (!id || !type) return;
 
-            await initializePlayback(id, type);
+            setWatchData(null);
+            setFetchError(null);
 
             try {
+
                 const data = await getMovieData(id, "info");
                 if (!mounted) return;
 
                 if (!data) {
                     setFetchError("No data returned.");
                     setWatchData(null);
-                } else {
-                    setWatchData(data);
-                    if (isDev) {
-                        console.log("Watch Data: ", data);
-                    }
-                    setFetchError(null);
-                    document.title = `WATCHING: ${data.Name} - MoNobar`;
+                    return;
                 }
+
+                setWatchData(data);
+                if (isDev) {
+                    console.log("Watch Data: ", data);
+                }
+                setFetchError(null);
+                document.title = `WATCHING: ${data.Name} - MoNobar`;
+
+                await initializePlayback(id, type);
 
                 if (type === 'Episode' && seriesId) {
                     const series = await getMovieData(seriesId, "info");
@@ -59,44 +63,60 @@ export default function WatchPage() {
                 setWatchData(null);
                 setSeriesData(null);
             }
-        }
-
-        fetchData();
+        }fetchData();
         return () => {
             mounted = false;
         };
-    }, [id, type, seriesId, initializePlayback]);    // STRICT unmounting protocol - handle page exit
+    }, [id, type, seriesId, initializePlayback]);    
+    useEffect(() => {
+        if (id && id !== currentEpisodeId) {
+
+            setWatchData(null);
+            setCurrentEpisodeId(id);
+        }
+    }, [id, currentEpisodeId]);
+
     useEffect(() => {
         let isRealUnmount = true;
         let unmountTimer = null;
-        let routeChangeStarted = false;        const handleBeforeUnload = (event) => {
+        let routeChangeStarted = false;        
+        const handleBeforeUnload = (event) => {
             if (process.env.NODE_ENV === 'development') console.log('Page beforeunload - stopping playback immediately');
-            routeChangeStarted = true;
-            setPageActive(false);
-            stopPlayback();
-        };
-
-        const handleVisibilityChange = () => {
-            if (document.hidden) {
-                if (process.env.NODE_ENV === 'development') console.log('Page hidden - stopping playback immediately');
+            setTimeout(() => {
                 routeChangeStarted = true;
                 setPageActive(false);
                 stopPlayback();
+            }, 0);
+        };        
+        const handleVisibilityChange = () => {
+            if (document.hidden) {
+                if (process.env.NODE_ENV === 'development') console.log('Page hidden - pausing video player but keeping playback state');
+            } else {
+                if (process.env.NODE_ENV === 'development') console.log('Page visible again - video should resume automatically');
             }
         };
 
         const handlePopState = () => {
             if (process.env.NODE_ENV === 'development') console.log('Navigation detected - stopping playback immediately');
-            routeChangeStarted = true;
-            setPageActive(false);
-            stopPlayback();
+            setTimeout(() => {
+                routeChangeStarted = true;
+                setPageActive(false);
+                stopPlayback();
+            }, 0);
         };
-
-        const handleRouteChangeStart = () => {
+        const handleRouteChangeStart = (targetUrl) => {
             if (process.env.NODE_ENV === 'development') console.log('Next.js route change detected - stopping playback immediately');
-            routeChangeStarted = true;
-            setPageActive(false);
-            stopPlayback();
+
+            const isLeavingWatchPage = targetUrl && !targetUrl.includes('/watch');
+            
+            if (isLeavingWatchPage || !targetUrl) {
+
+                setTimeout(() => {
+                    routeChangeStarted = true;
+                    setPageActive(false);
+                    stopPlayback();
+                }, 0);
+            }
         };
 
         window.addEventListener('beforeunload', handleBeforeUnload);
@@ -109,15 +129,17 @@ export default function WatchPage() {
             const originalReplaceState = window.history.replaceState;
             
             window.history.pushState = function(...args) {
+                const targetUrl = args[2];
                 if (window.location.pathname === '/watch') {
-                    handleRouteChangeStart();
+                    handleRouteChangeStart(targetUrl);
                 }
                 return originalPushState.apply(this, args);
             };
             
             window.history.replaceState = function(...args) {
+                const targetUrl = args[2];
                 if (window.location.pathname === '/watch') {
-                    handleRouteChangeStart();
+                    handleRouteChangeStart(targetUrl);
                 }
                 return originalReplaceState.apply(this, args);
             };
@@ -192,37 +214,101 @@ export default function WatchPage() {
                 action="back"
             />
         );
-    }    
+    }      
     return (
-        <section className="min-h-screen pt-20 pb-16">
-            {type === 'Episode' && seriesId ? (
-                seriesData ? (                
-                <div className="flex flex-col md:flex-row mx-auto">
+        <section className="min-h-screen pt-20 pb-16 px-4">
+            <div className="max-w-7xl mx-auto">
+                <div className="flex flex-col lg:flex-row gap-6">
+                    {/* Left Side - Player and Episode Data */}
                     <div className="flex-1 min-w-0">
-                        <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
-                            {watchData && pageActive && (
-                                <Player poster={watchData?.BackdropImageTags} id={id} type={type} fullData={watchData}/>
+                        {/* Player Section */}
+                        <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden mb-6">
+                            {watchData && watchData.Id === id && pageActive ? (
+                                <Player key={watchData.Id} poster={watchData?.BackdropImageTags} id={id} type={type} fullData={watchData} seriesData={seriesData}/>
+                            ) : (
+                                <div className="flex justify-center items-center w-full h-full">
+                                    <span className="loading loading-spinner loading-lg"></span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Episode Data Section */}
+                        <div className="bg-base-200 rounded-lg p-6">
+                            {watchData ? (
+                                <div className="space-y-4">
+                                    <div>
+                                        <h1 className="text-2xl font-bold mb-2">{watchData.Name}</h1>
+                                        {type === 'Episode' && (
+                                            <div className="text-sm text-base-content/70 mb-3">
+                                                Season {watchData.ParentIndexNumber} • Episode {watchData.IndexNumber}
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    {watchData.Overview && (
+                                        <div>
+                                            <h3 className="text-lg font-semibold mb-2">Overview</h3>
+                                            <p className="text-base-content/80 leading-relaxed">{watchData.Overview}</p>
+                                        </div>
+                                    )}
+
+                                    <div className="flex flex-wrap gap-4 text-sm text-base-content/70">
+                                        {watchData.RunTimeTicks && (
+                                            <div>
+                                                <span className="font-medium">Runtime:</span> {Math.round(watchData.RunTimeTicks / 600000000)} min
+                                            </div>
+                                        )}
+                                        {watchData.PremiereDate && (
+                                            <div>
+                                                <span className="font-medium">Air Date:</span> {new Date(watchData.PremiereDate).toLocaleDateString()}
+                                            </div>
+                                        )}
+                                        {watchData.CommunityRating && (
+                                            <div>
+                                                <span className="font-medium">Rating:</span> {watchData.CommunityRating}/10
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {watchData.Genres && watchData.Genres.length > 0 && (
+                                        <div>
+                                            <h3 className="text-lg font-semibold mb-2">Genres</h3>
+                                            <div className="flex flex-wrap gap-2">
+                                                {watchData.Genres.map((genre, index) => (
+                                                    <span key={index} className="badge badge-outline">{genre}</span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="flex justify-center items-center h-32">
+                                    <span className="loading loading-spinner loading-md"></span>
+                                </div>
                             )}
                         </div>
                     </div>
-                        <div className="w-full md:w-[300px] flex-shrink-0 md:mx-4 mx-0">
-                            <SeasonsEpisodesViewer 
-                                seriesData={seriesData} 
-                                currentEpisodeId={id} 
-                                mode="watch" 
-                            />
+
+                    {/* Right Side - Season Episodes Viewer */}
+                    {type === 'Episode' && seriesId && (
+                        <div className="w-full lg:w-96 flex-shrink-0">
+                            {seriesData ? (
+                                <SeasonsEpisodesViewer 
+                                    seriesData={seriesData} 
+                                    currentEpisodeId={id} 
+                                    mode="watch" 
+                                />
+                            ) : (
+                                <div className="bg-base-200 rounded-lg p-6">
+                                    <div className="flex justify-center items-center h-32">
+                                        <span className="loading loading-spinner loading-md"></span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                    </div>
-                ) : (
-                    <div className="flex justify-center items-center min-h-[40vh] w-full">
-                        <span className="loading loading-spinner loading-lg"></span>
-                    </div>
-                )
-            ) : (
-                watchData && pageActive && (
-                    <Player poster={watchData?.BackdropImageTags} id={id} type={type} fullData={watchData}/>
-                )
-            )}
+                    )}
+                </div>
+            </div>
         </section>
     )
 }

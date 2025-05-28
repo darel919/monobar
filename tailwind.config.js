@@ -13,6 +13,21 @@ module.exports = {
       },
     },
   },
-  plugins: [require("daisyui"), require('@tailwindcss/line-clamp')],    
+  plugins: [
+    require("daisyui"), 
+    require('@tailwindcss/line-clamp'),
+    function({ addUtilities }) {
+      const newUtilities = {
+        '.scrollbar-hide': {
+          '-ms-overflow-style': 'none',
+          'scrollbar-width': 'none',
+          '&::-webkit-scrollbar': {
+            display: 'none'
+          }
+        }
+      }
+      addUtilities(newUtilities)
+    }
+  ],    
 
 }

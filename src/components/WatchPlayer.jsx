@@ -10,21 +10,36 @@ import { API_BASE_URL, getEnvironmentHeader } from "@/lib/api";
 import { getOrCreateGenSessionId } from '@/lib/genSessionId';
 import { useRouter } from 'next/navigation';
 import StatsForNerds from "./WatchPlayerStats";
+import PlayNext from "./PlayNext";
+import { findNextEpisode, isAtAbsoluteEnd, getNextEpisodeInfo } from "@/lib/episodeUtils";
+import { getMovieData } from "@/lib/api";
 
-export default function Player({ poster, fullData, id, type }) {
+export default function Player({ poster, fullData, id, type, seriesData }) {
     const artRef = useRef();    
     const router = useRouter();
-    const isDev = process.env.NODE_ENV === 'development';    const stopPlayback = usePlaybackStore(useCallback(state => state.stopPlayback, []));
+    const isDev = process.env.NODE_ENV === 'development';    
+    const stopPlayback = usePlaybackStore(useCallback(state => state.stopPlayback, []));
     const stopPlaybackSilent = usePlaybackStore(useCallback(state => state.stopPlaybackSilent, []));
     const setActivePlayer = usePlaybackStore(useCallback(state => state.setActivePlayer, []));
     const clearActivePlayer = usePlaybackStore(useCallback(state => state.clearActivePlayer, []));
     const setCleanupCallback = usePlaybackStore(useCallback(state => state.setCleanupCallback, []));
     const status = usePlaybackStore(useCallback(state => state.status, []));
-    const src = usePlaybackStore(useCallback(state => state.src, []));
+    const src = usePlaybackStore(useCallback(state => state.src, []));    
     const [playbackEnded, setPlaybackEnded] = useState(false);
     const [showStats, setShowStats] = useState(false);
-    const [playerMounted, setPlayerMounted] = useState(false);
+    const [playerMounted, setPlayerMounted] = useState(false);    const [showPlayNext, setShowPlayNext] = useState(false);
+    const [playNextCountdown, setPlayNextCountdown] = useState(30);
+    const [nextEpisode, setNextEpisode] = useState(null);
+    const [currentSeriesData, setCurrentSeriesData] = useState(seriesData);
+    const [wasInFullscreen, setWasInFullscreen] = useState(false);
     const playerId = useRef(`player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`).current;
+
+    const [containerReady, setContainerReady] = useState(false);
+    useEffect(() => {
+        setContainerReady(false);
+        const timeout = setTimeout(() => setContainerReady(true), 0);
+        return () => clearTimeout(timeout);
+    }, [id]);
 
     useEffect(() => {
         if (playbackEnded) {
@@ -100,7 +115,8 @@ export default function Player({ poster, fullData, id, type }) {
             const jellyUserId = Cookies.get('jellyUserId');
             if (jellyAccessToken && jellyUserId) {
                 headers['Authorization'] = `monobar_user=${jellyUserId},monobar_token=${jellyAccessToken}`;
-            }        } catch (error) {
+            }        
+        } catch (error) {
             if (isDev) console.warn('Could not access Jelly auth cookies:', error);
         }
 
@@ -113,9 +129,33 @@ export default function Player({ poster, fullData, id, type }) {
                 ...data 
             })
         });
-    }    useEffect(() => {
+    }    
+
+    useEffect(() => {
+        const fetchSeriesData = async () => {
+            if (type === 'Episode' && fullData?.SeriesId && !currentSeriesData) {
+                try {
+                    const series = await getMovieData(fullData.SeriesId, "info");
+                    setCurrentSeriesData(series);
+                } catch (error) {
+                    if (isDev) console.error('Failed to fetch series data:', error);
+                }
+            }
+        };
+
+        fetchSeriesData();
+    }, [type, fullData?.SeriesId, currentSeriesData, isDev]);
+    useEffect(() => {
+        if (type === 'Episode' && currentSeriesData && id) {
+            const next = findNextEpisode(id, currentSeriesData);
+            setNextEpisode(next);
+            if (isDev) console.log('Next episode detected:', next ? `${next.Name} (${next.Id})` : 'None');
+        }
+    }, [type, currentSeriesData, id]);
+
+    useEffect(() => {
         if (!poster || !src || status !== 'playing') return;
-        if (!artRef.current) return;
+        if (!artRef.current || !containerReady) return;
 
         if (playerMounted || artRef.current.art) {
             if (isDev) console.warn('Player already mounted, skipping initialization');
@@ -229,7 +269,8 @@ export default function Player({ poster, fullData, id, type }) {
                                     const jellyUserId = Cookies.get('jellyUserId');
                                     if (jellyAccessToken && jellyUserId) {
                                         xhr.setRequestHeader('Authorization', `monobar_user=${jellyUserId},monobar_token=${jellyAccessToken}`);
-                                    }                                } catch (error) {
+                                    }                                
+                                } catch (error) {
                                     if (isDev) console.warn('Could not access auth cookies for HLS request:', error);
                                 }
                             }
@@ -314,12 +355,19 @@ export default function Player({ poster, fullData, id, type }) {
                 clearInterval(timeupdateInterval);
                 timeupdateInterval = null;
             }
-        };
-
+        };        
         art.on('ready', () => {
             if (!art.paused) {
                 postStatus('play', getStatusData());
                 startStatusInterval();
+            }
+
+            const shouldRestoreFullscreen = localStorage.getItem('restoreFullscreen');
+            if (shouldRestoreFullscreen === 'true') {
+                localStorage.removeItem('restoreFullscreen');
+                setTimeout(() => {
+                    art.fullscreen = true;
+                }, 500);
             }
         });
 
@@ -355,22 +403,33 @@ export default function Player({ poster, fullData, id, type }) {
 
         art.on('seeked', () => {
             postStatus('seek', getStatusData());
-        });
-
+        });        
         const handleEnd = () => {
             try {
                 postStatus('stop', getStatusData());
                 stopStatusInterval();
-                stopPlayback();
-                
 
+                if (type === 'Episode' && currentSeriesData && nextEpisode) {
+
+                    if (art.fullscreen) {
+                        localStorage.setItem('restoreFullscreen', 'true');
+                    }
+
+                    const nextEpisodeUrl = `/watch?id=${nextEpisode.Id}&type=Episode&seriesId=${currentSeriesData.Id}`;
+                    if (isDev) console.log('Auto-progressing to next episode:', nextEpisodeUrl);
+                    router.replace(nextEpisodeUrl);
+                    return;
+                }
+
+                stopPlayback();
                 if (type === 'Episode' && fullData?.SeriesId) {
                     router.replace(`/info?id=${fullData.SeriesId}&type=Series`);
                 } else if (id && type) {
                     router.replace(`/info?id=${id}&type=${type}`);
                 } else {
                     router.replace('/');
-                }            } catch (error) {
+                }
+            } catch (error) {
                 if (isDev) console.error('Error during playback end:', error);
 
                 if (type === 'Episode' && fullData?.SeriesId) {
@@ -383,7 +442,146 @@ export default function Player({ poster, fullData, id, type }) {
             }
         };
         art.on('ended', handleEnd);
-        art.video.addEventListener('ended', handleEnd);
+        art.video.addEventListener('ended', handleEnd); 
+        let playNextCountdownInterval = null;
+        let playNextCheckInterval = null;
+
+        if (type === 'Episode' && nextEpisode) {
+            playNextCheckInterval = setInterval(() => {
+                if (art && art.duration && art.currentTime) {                    
+                    const timeRemaining = art.duration - art.currentTime;
+                    const playNextEnabled = getUserPreference('playNextEnabled', 'true') !== 'false';
+                    
+                    if (isDev && timeRemaining <= 35) {
+                        console.log('Manual check - timeRemaining:', timeRemaining, 'playNextEnabled:', playNextEnabled, 'showPlayNext:', showPlayNext);
+                    }
+                    
+                    if (playNextEnabled && timeRemaining <= 30 && timeRemaining > 0 && !showPlayNext) {
+                        if (isDev) console.log('Showing Play Next via manual interval!');
+
+                        if (art.fullscreen) {
+                            setWasInFullscreen(true);
+                            art.fullscreen = false;
+                        }
+                        
+                        setShowPlayNext(true);
+                        setPlayNextCountdown(Math.ceil(timeRemaining));
+
+                        playNextCountdownInterval = setInterval(() => {
+                            if (art && art.duration && art.currentTime) {
+                                const currentTimeRemaining = art.duration - art.currentTime;
+                                if (currentTimeRemaining <= 0) {
+                                    clearInterval(playNextCountdownInterval);
+                                    setShowPlayNext(false);
+                                } else {
+                                    setPlayNextCountdown(Math.ceil(currentTimeRemaining));
+                                }
+                            }                        }, 1000);
+                    }
+
+                    if (timeRemaining > 30 && showPlayNext) {
+                        setShowPlayNext(false);
+                        if (playNextCountdownInterval) {
+                            clearInterval(playNextCountdownInterval);
+                            playNextCountdownInterval = null;
+                        }
+                    }
+                }
+            }, 1000);
+        }
+        
+        const handleTimeUpdate = () => {
+            if (type === 'Episode' && nextEpisode && art.duration && art.currentTime) {
+                const timeRemaining = art.duration - art.currentTime;
+
+                const playNextEnabled = getUserPreference('playNextEnabled', 'true') !== 'false';
+                if (isDev) console.log('Play Next Debug:', {
+                    type,
+                    hasNextEpisode: !!nextEpisode,
+                    duration: art.duration,
+                    currentTime: art.currentTime,
+                    timeRemaining,
+                    playNextEnabled,
+                    showPlayNext,
+                    isWithin15Seconds: timeRemaining <= 15,
+                    isPositive: timeRemaining > 0
+                });
+                  if (playNextEnabled && timeRemaining <= 30 && timeRemaining > 0 && !showPlayNext) {
+                    if (isDev) console.log('Showing Play Next!');
+
+                    if (art.fullscreen) {
+                        setWasInFullscreen(true);
+                        art.fullscreen = false;
+                    }
+                    
+                    setShowPlayNext(true);
+                    setPlayNextCountdown(Math.ceil(timeRemaining));
+
+                    playNextCountdownInterval = setInterval(() => {
+                        const currentTimeRemaining = art.duration - art.currentTime;
+                        if (currentTimeRemaining <= 0) {
+                            clearInterval(playNextCountdownInterval);
+                            setShowPlayNext(false);
+                        } else {
+                            setPlayNextCountdown(Math.ceil(currentTimeRemaining));
+                        }
+                    }, 1000);
+                }
+
+                if (timeRemaining > 30 && showPlayNext) {
+                    setShowPlayNext(false);
+                    if (playNextCountdownInterval) {
+                        clearInterval(playNextCountdownInterval);
+                        playNextCountdownInterval = null;
+                    }
+                }
+            }
+        };
+        art.on('timeupdate', handleTimeUpdate);
+
+        if (isDev) {
+            console.log('Timeupdate event listener attached for Play Next functionality');
+            art.on('timeupdate', () => {
+                if (type === 'Episode' && art.duration && art.currentTime) {
+                    const timeRemaining = art.duration - art.currentTime;
+                    if (timeRemaining <= 20) {
+                        console.log('Close to end - timeRemaining:', timeRemaining);
+                    }
+                }
+            });
+        }
+
+        art.on('progress', () => {
+            if (type === 'Episode' && nextEpisode && art.duration && art.currentTime) {
+                const timeRemaining = art.duration - art.currentTime;
+                const playNextEnabled = getUserPreference('playNextEnabled', 'true') !== 'false';
+                
+                if (isDev && timeRemaining <= 20) {
+                    console.log('Progress event - timeRemaining:', timeRemaining, 'playNextEnabled:', playNextEnabled);
+                }
+                
+                if (playNextEnabled && timeRemaining <= 15 && timeRemaining > 0 && !showPlayNext) {
+                    if (isDev) console.log('Showing Play Next via progress event!');
+                    setShowPlayNext(true);
+                    setPlayNextCountdown(Math.ceil(timeRemaining));
+                }
+            }
+        });
+
+        art.on('loadeddata', () => {
+            if (isDev) console.log('Video loadeddata event fired');
+        });       
+        const cleanupPlayNext = () => {
+            if (playNextCountdownInterval) {
+                clearInterval(playNextCountdownInterval);
+                playNextCountdownInterval = null;
+            }
+            if (playNextCheckInterval) {
+                clearInterval(playNextCheckInterval);
+                playNextCheckInterval = null;
+            }
+            setShowPlayNext(false);
+        };
 
         const audioPref = getUserPreference('audioPref', null);
         if (audioPref && art.hls && art.hls.audioTracks) {
@@ -402,7 +600,8 @@ export default function Player({ poster, fullData, id, type }) {
                 }
             }
         }
-        if (art.hls) {            art.hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
+        if (art.hls) {            
+            art.hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
                 if (isDev) console.warn('Level switched:', data);
                 userQualitySelected = true;
                 const levelIdx = data.level;
@@ -411,7 +610,8 @@ export default function Player({ poster, fullData, id, type }) {
                     const qualitySetting = art.setting.find(s => s.html === 'Quality');
                     if (qualitySetting) {
                         qualitySetting.tooltip = level.height + 'P';
-                    }                }
+                    }                
+                }
                 if (level && level.height) {
                     setUserPreference('qualityPref', level.height + 'P');
                 }
@@ -456,17 +656,18 @@ export default function Player({ poster, fullData, id, type }) {
 
             stopStatusInterval();
             if (isDev) console.log(`Stopped status interval for ${playerId} during immediate cleanup`);
-            
-
-            const isRealCleanup = process.env.NODE_ENV !== 'development' || 
+                const isRealCleanup = process.env.NODE_ENV !== 'development' || 
                                   document.visibilityState === 'hidden' ||
-                                  window.location.pathname !== '/watch';            if (!isRealCleanup) {
+                                  window.location.pathname !== '/watch' ||
+                                  !window.location.search.includes(`id=${id}`); 
+            if (!isRealCleanup) {
                 if (isDev) console.log(`Skipping full cleanup for ${playerId} - likely React strict mode, but HLS already stopped`);
                 setPlayerMounted(false);
                 return;
             }
             
             clearInterval(timeupdateInterval);            
+            cleanupPlayNext();
             setShowStats(false);
             setPlayerMounted(false);
 
@@ -496,10 +697,34 @@ export default function Player({ poster, fullData, id, type }) {
             
             if (isDev) console.log(`WatchPlayer cleanup completed for ${playerId}`);
         };
-    }, [src, poster, status, stopPlayback, stopPlaybackSilent]);
-
-    const handleCloseStats = () => {
+    }, [src, poster, status, stopPlayback, stopPlaybackSilent, containerReady]);    const handleCloseStats = () => {
         setShowStats(false);
+    };
+
+    const handlePlayNext = () => {
+        if (nextEpisode && currentSeriesData) {
+
+            if (artRef.current?.art) {
+                try {
+                    postStatus('stop', getStatusData());
+                } catch (error) {
+                    if (isDev) console.warn('Failed to send stop status:', error);
+                }
+            }
+
+            const nextEpisodeUrl = `/watch?id=${nextEpisode.Id}&type=Episode&seriesId=${currentSeriesData.Id}`;
+            if (isDev) console.log('Manually progressing to next episode:', nextEpisodeUrl);
+
+            if (wasInFullscreen) {
+                localStorage.setItem('restoreFullscreen', 'true');
+            }
+            
+            router.replace(nextEpisodeUrl);
+        }
+    };
+
+    const handleCancelPlayNext = () => {
+        setShowPlayNext(false);
     };
 
     if (status !== 'playing') return null;
@@ -511,7 +736,16 @@ export default function Player({ poster, fullData, id, type }) {
                 visible={showStats}
                 onClose={handleCloseStats}
                 art={artRef.current?.art}
-            />
+            />            
+            {showPlayNext && nextEpisode && currentSeriesData && (
+                <PlayNext
+                    visible={showPlayNext}
+                    secondsRemaining={playNextCountdown}
+                    nextEpisodeInfo={getNextEpisodeInfo(nextEpisode, currentSeriesData)}
+                    onPlayNext={handlePlayNext}
+                    onCancel={handleCancelPlayNext}
+                />
+            )}
         </>
     );
 }

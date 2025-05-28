@@ -4,16 +4,18 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function SettingsPage() {
-    const router = useRouter();
+    const router = useRouter();    
     const [settings, setSettings] = useState({
         playTrailersAutomatically: true,
+        playNextEnabled: true,
         theme: 'system' // 'system', 'dark', 'light'
     });
     const [isLoaded, setIsLoaded] = useState(false);
 
-    useEffect(() => {
+    useEffect(() => {        
         const savedSettings = {
             playTrailersAutomatically: localStorage.getItem('playTrailersAutomatically') !== 'false',
+            playNextEnabled: localStorage.getItem('playNextEnabled') !== 'false',
             theme: localStorage.getItem('theme') || 'system'
         };
         setSettings(savedSettings);
@@ -22,7 +24,8 @@ export default function SettingsPage() {
     useEffect(() => {
         if (!isLoaded) return;
         
-        const html = document.documentElement;          
+        const html = document.documentElement;  
+        document.title = 'moNobar Settings';        
         const applyTheme = (theme) => {
             console.log('Settings: Applying theme:', theme);
             if (theme === 'system') {
@@ -68,17 +71,23 @@ export default function SettingsPage() {
 
         applyTheme(settings.theme);
         localStorage.setItem('theme', settings.theme);
-    }, [settings.theme, isLoaded]);
-
+    }, [settings.theme, isLoaded]);    
     useEffect(() => {
         if (!isLoaded) return;
         localStorage.setItem('playTrailersAutomatically', settings.playTrailersAutomatically.toString());
-    }, [settings.playTrailersAutomatically, isLoaded]);
-
+        localStorage.setItem('playNextEnabled', settings.playNextEnabled.toString());
+    }, [settings.playTrailersAutomatically, settings.playNextEnabled, isLoaded]);    
     const handleTrailerToggle = () => {
         setSettings(prev => ({
             ...prev,
             playTrailersAutomatically: !prev.playTrailersAutomatically
+        }));
+    };
+
+    const handlePlayNextToggle = () => {
+        setSettings(prev => ({
+            ...prev,
+            playNextEnabled: !prev.playNextEnabled
         }));
     };
 
@@ -127,8 +136,7 @@ export default function SettingsPage() {
                                 </svg>
                                 Playback
                             </h2>
-                            
-                            {/* Play Trailers Automatically */}
+                              {/* Play Trailers Automatically */}
                             <div className="form-control">
                                 <label className="label cursor-pointer justify-start gap-4 flex flex-row items-start">
                                     <input 
@@ -140,7 +148,24 @@ export default function SettingsPage() {
                                     <div className="flex flex-col">
                                         <span className="label-text text-lg font-medium">Play Trailers Automatically</span>
                                         <p className="text-sm text-base-content/60 mt-1 whitespace-normal leading-snug">
-                                            When enabled, trailers will automatically play on movie/show info pages
+                                            When enabled, trailers will automatically play on movie's info page.
+                                        </p>
+                                    </div>
+                                </label>
+                            </div>
+
+                            {/* Play Next for TV Series */}
+                            <div className="form-control">
+                                <label className="label cursor-pointer justify-start gap-4 flex flex-row items-start">
+                                    <input 
+                                        type="checkbox" 
+                                        className="toggle toggle-primary mt-1" 
+                                        checked={settings.playNextEnabled}
+                                        onChange={handlePlayNextToggle}
+                                    />
+                                    <div className="flex flex-col">                                        <span className="label-text text-lg font-medium">Show "Play Next" for TV Series</span>
+                                        <p className="text-sm text-base-content/60 mt-1 whitespace-normal leading-snug">
+                                            When enabled, shows a "Play Next" prompt 30 seconds before an episode ends. Episodes will always auto-progress, but this lets you jump ahead early.
                                         </p>
                                     </div>
                                 </label>
@@ -173,8 +198,8 @@ export default function SettingsPage() {
                                             onChange={() => handleThemeChange('system')}
                                         />
                                         <div className="flex flex-col">
-                                            <span className="label-text font-medium">Default (Follow System)</span>
-                                            <p className="text-sm whitespace-normal leading-snug">Automatically match your device settings</p>
+                                            <span className="label-text font-medium">System (Default)</span>
+                                            <p className="text-sm whitespace-normal leading-snug">Automatically match your device settings.</p>
                                         </div>
                                     </label>
                                     <label className="label cursor-pointer justify-start gap-3 p-4 rounded-lg border border-base-300 hover:bg-base-300 transition-colors flex flex-row items-start">
@@ -187,7 +212,7 @@ export default function SettingsPage() {
                                         />
                                         <div className="flex flex-col">
                                             <span className="label-text font-medium">Dark</span>
-                                            <p className="text-sm whitespace-normal leading-snug">Dark theme for low-light environments</p>
+                                            <p className="text-sm whitespace-normal leading-snug">Dark theme for low-light environments.</p>
                                         </div>
                                     </label>
                                     <label className="label cursor-pointer justify-start gap-3 p-4 rounded-lg border border-base-300 hover:bg-base-300 transition-colors flex flex-row items-start">
@@ -200,7 +225,7 @@ export default function SettingsPage() {
                                         />
                                         <div className="flex flex-col">
                                             <span className="label-text font-medium">Light</span>
-                                            <p className="text-sm whitespace-normal leading-snug">Light theme for bright environments</p>
+                                            <p className="text-sm whitespace-normal leading-snug">Light theme for bright environments.</p>
                                         </div>
                                     </label>
                                 </div>
@@ -218,24 +243,27 @@ export default function SettingsPage() {
                                 Reset
                             </h2>
                             
-                            <div className="flex flex-col sm:flex-row gap-4 items-start">
+                            <div className="flex flex-row gap-4 items-start">
                                 <button 
                                     className="btn btn-outline btn-warning"
-                                    onClick={() => {
+                                    onClick={() => {                                        
                                         if (confirm('Are you sure you want to reset all settings to default?')) {
                                             localStorage.removeItem('playTrailersAutomatically');
+                                            localStorage.removeItem('playNextEnabled');
                                             localStorage.removeItem('theme');
                                             setSettings({
                                                 playTrailersAutomatically: true,
+                                                playNextEnabled: true,
                                                 theme: 'system'
                                             });
                                             document.documentElement.removeAttribute('data-theme');
+                                            window.location.reload();
                                         }
                                     }}
                                 >
                                     Reset All Settings
                                 </button>
-                                <p className="text-sm text-base-content/60">
+                                <p className="text-sm">
                                     This will restore all settings to their default values.
                                 </p>
                             </div>
