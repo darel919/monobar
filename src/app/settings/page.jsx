@@ -2,9 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import usePlaybackStore from '@/store/playbackStore';
 
 export default function SettingsPage() {
-    const router = useRouter();    
+    const router = useRouter();
+    const playNextShowThreshold = usePlaybackStore(state => state.playNextShowThreshold);
+    const playNextAutoProgressThreshold = usePlaybackStore(state => state.playNextAutoProgressThreshold);
+    const setPlayNextShowThreshold = usePlaybackStore(state => state.setPlayNextShowThreshold);
+    const setPlayNextAutoProgressThreshold = usePlaybackStore(state => state.setPlayNextAutoProgressThreshold);
+    
     const [settings, setSettings] = useState({
         playTrailersAutomatically: true,
         playNextEnabled: true,
@@ -89,13 +95,27 @@ export default function SettingsPage() {
             ...prev,
             playNextEnabled: !prev.playNextEnabled
         }));
-    };
-
+    };    
     const handleThemeChange = (newTheme) => {
         setSettings(prev => ({
             ...prev,
             theme: newTheme
         }));
+    };    const handleShowThresholdChange = (e) => {
+        const value = parseInt(e.target.value);
+        if (value >= 15 && value <= 45) {
+            setPlayNextShowThreshold(value);
+            const maxAutoProgress = Math.max(0, value - 3);
+            if (playNextAutoProgressThreshold > maxAutoProgress) {
+                setPlayNextAutoProgressThreshold(maxAutoProgress);
+            }
+        }
+    };const handleAutoProgressThresholdChange = (e) => {
+        const value = parseInt(e.target.value);
+        const maxAllowed = Math.max(0, playNextShowThreshold - 3);
+        if (value >= 0 && value <= maxAllowed) {
+            setPlayNextAutoProgressThreshold(value);
+        }
     };
 
     if (!isLoaded) {
@@ -152,9 +172,7 @@ export default function SettingsPage() {
                                         </p>
                                     </div>
                                 </label>
-                            </div>
-
-                            {/* Play Next for TV Series */}
+                            </div>                            {/* Play Next for TV Series */}
                             <div className="form-control">
                                 <label className="label cursor-pointer justify-start gap-4 flex flex-row items-start">
                                     <input 
@@ -163,11 +181,64 @@ export default function SettingsPage() {
                                         checked={settings.playNextEnabled}
                                         onChange={handlePlayNextToggle}
                                     />                                    <div className="flex flex-col">                                        <span className="label-text text-lg font-medium">Show "Play Next" for TV Series</span>                                        <p className="text-sm text-base-content/60 mt-1 whitespace-normal leading-snug">
-                                            When enabled, shows a "Play Next" prompt 40 seconds before an episode ends, counting down to 12 seconds when it auto-progresses. You can dismiss it to let the video play to 0 seconds before progressing.
+                                            When enabled, shows a "Play Next" prompt {playNextShowThreshold} seconds before an episode ends, counting down to {playNextAutoProgressThreshold} seconds when it auto-progresses. You can dismiss it to let the video play to 0 seconds before progressing.
                                         </p>
                                     </div>
                                 </label>
                             </div>
+
+                            {/* Play Next Timing Settings */}
+                            {settings.playNextEnabled && (
+                                <div className="ml-8 space-y-4 border-l-2 border-base-300 pl-4">
+                                    <div className="form-control">
+                                        <label className="label">
+                                            <span className="label-text font-medium">Show "Play Next" at (seconds before end)</span>
+                                        </label>                                        <div className="flex items-center gap-3">
+                                            <input 
+                                                type="range" 
+                                                min="15" 
+                                                max="45" 
+                                                value={playNextShowThreshold} 
+                                                className="range range-primary flex-1" 
+                                                onChange={handleShowThresholdChange}
+                                            />
+                                            <input 
+                                                type="number" 
+                                                min="15" 
+                                                max="45" 
+                                                value={playNextShowThreshold} 
+                                                className="input input-bordered w-20 text-center" 
+                                                onChange={handleShowThresholdChange}
+                                            />
+                                        </div>
+                                        <p className="text-xs text-base-content/60 mt-1">Range: 15-45 seconds</p>
+                                    </div>
+
+                                    <div className="form-control">
+                                        <label className="label">
+                                            <span className="label-text font-medium">Auto-progress at (seconds before end)</span>
+                                        </label>                                        <div className="flex items-center gap-3">
+                                            <input 
+                                                type="range" 
+                                                min="0" 
+                                                max={Math.max(0, playNextShowThreshold - 3)} 
+                                                value={playNextAutoProgressThreshold} 
+                                                className="range range-secondary flex-1" 
+                                                onChange={handleAutoProgressThresholdChange}
+                                            />
+                                            <input 
+                                                type="number" 
+                                                min="0" 
+                                                max={Math.max(0, playNextShowThreshold - 3)} 
+                                                value={playNextAutoProgressThreshold} 
+                                                className="input input-bordered w-20 text-center" 
+                                                onChange={handleAutoProgressThresholdChange}
+                                            />
+                                        </div>
+                                        <p className="text-xs text-base-content/60 mt-1">Range: 0-{Math.max(0, playNextShowThreshold - 3)} seconds (must be at least 3s before show threshold)</p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 

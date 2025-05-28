@@ -1,21 +1,29 @@
 "use client"
 
 import { useState, useEffect } from 'react';
+import usePlaybackStore from '@/store/playbackStore';
 
 export default function PlayNext({ 
     visible, 
     secondsRemaining, 
     nextEpisodeInfo, 
     onPlayNext, 
-    onCancel 
+    onCancel,
+    showThreshold,
+    autoProgressThreshold
 }) {
-    const [progress, setProgress] = useState(0);    useEffect(() => {
+    const storeShowThreshold = usePlaybackStore(state => state.playNextShowThreshold);
+    const storeAutoProgressThreshold = usePlaybackStore(state => state.playNextAutoProgressThreshold);
+    
+    const actualShowThreshold = showThreshold ?? storeShowThreshold;
+    const actualAutoProgressThreshold = autoProgressThreshold ?? storeAutoProgressThreshold;    const [progress, setProgress] = useState(0);    
+    useEffect(() => {
         if (visible && secondsRemaining > 0) {
-            // Progress bar spans from 40 seconds to 12 seconds (28 second window)
-            const progressPercent = ((40 - secondsRemaining) / 28) * 100;
+            const totalProgressTime = actualShowThreshold - actualAutoProgressThreshold;
+            const progressPercent = ((actualShowThreshold - secondsRemaining) / totalProgressTime) * 100;
             setProgress(Math.min(100, Math.max(0, progressPercent)));
         }
-    }, [visible, secondsRemaining]);
+    }, [visible, secondsRemaining, actualShowThreshold, actualAutoProgressThreshold]);
 
     if (!visible || !nextEpisodeInfo) return null;
 
@@ -32,7 +40,7 @@ export default function PlayNext({
             {/* Content */}
             <div className="relative p-4">
                 <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold text-base-content">Play Next</h3>
+                    {/* <h3 className="text-lg font-semibold text-base-content">Play Next</h3> */}
                     <button
                         onClick={onCancel}
                         className="btn btn-ghost btn-xs"
@@ -51,9 +59,9 @@ export default function PlayNext({
                     <p className="font-medium text-base-content line-clamp-2">
                         {nextEpisodeInfo.title}
                     </p>
-                </div>                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-base-content/60">
-                        {secondsRemaining <= 12 ? 'Loading next episode...' : `Playing next episode in ${secondsRemaining}s`}
+                </div>                  
+                <div className="flex items-center justify-between">                      <span className="text-sm text-base-content/60">
+                        {secondsRemaining <= actualAutoProgressThreshold ? 'Loading next episode...' : `Playing next episode in ${secondsRemaining}s`}
                     </span>
                     <button
                         onClick={onPlayNext}

@@ -162,7 +162,7 @@ export default async function InfoPage({ searchParams }) {
               </section>
             </>
           ) : (
-            <p className="text-xs mb-1">No subtitles available</p>
+            type === 'Series' ? null : <p className="text-xs mb-1">No subtitles available</p>
           )}
         </section>        
         <div className="overflow-hidden md:relative my-4">

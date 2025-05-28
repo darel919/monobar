@@ -21,14 +21,16 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
     const stopPlayback = usePlaybackStore(useCallback(state => state.stopPlayback, []));
     const stopPlaybackSilent = usePlaybackStore(useCallback(state => state.stopPlaybackSilent, []));
     const setActivePlayer = usePlaybackStore(useCallback(state => state.setActivePlayer, []));
-    const clearActivePlayer = usePlaybackStore(useCallback(state => state.clearActivePlayer, []));
+    const clearActivePlayer = usePlaybackStore(useCallback(state => state.clearActivePlayer, []));    
     const setCleanupCallback = usePlaybackStore(useCallback(state => state.setCleanupCallback, []));
     const status = usePlaybackStore(useCallback(state => state.status, []));
-    const src = usePlaybackStore(useCallback(state => state.src, []));    
+    const src = usePlaybackStore(useCallback(state => state.src, []));
+    const playNextShowThreshold = usePlaybackStore(useCallback(state => state.playNextShowThreshold, []));
+    const playNextAutoProgressThreshold = usePlaybackStore(useCallback(state => state.playNextAutoProgressThreshold, []));
     const [playbackEnded, setPlaybackEnded] = useState(false);
     const [showStats, setShowStats] = useState(false);
     const [playerMounted, setPlayerMounted] = useState(false);      const [showPlayNext, setShowPlayNext] = useState(false);
-    const [playNextCountdown, setPlayNextCountdown] = useState(40);
+    const [playNextCountdown, setPlayNextCountdown] = useState(playNextShowThreshold);
     const [playNextDismissed, setPlayNextDismissed] = useState(false);
     const [nextEpisode, setNextEpisode] = useState(null);
     const [currentSeriesData, setCurrentSeriesData] = useState(seriesData);
@@ -418,7 +420,9 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
         const handleEnd = () => {
             try {
                 postStatus('stop', getStatusData());
-                stopStatusInterval();                if (type === 'Episode' && currentSeriesData && nextEpisode) {                    if (wasInFullscreen) {
+                stopStatusInterval();                
+                if (type === 'Episode' && currentSeriesData && nextEpisode) {                    
+                    if (wasInFullscreen) {
                         if (isDev) console.log('wasInFullscreen is true, sessionStorage flag should already be set');
                     }
 
@@ -461,8 +465,9 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
                         console.log('Manual check - timeRemaining:', timeRemaining, 'playNextEnabled:', playNextEnabled, 'showPlayNext:', showPlayNext, 'dismissed:', playNextDismissed);
                     }
                     
-                    if (playNextEnabled && timeRemaining <= 40 && timeRemaining > 0 && !showPlayNext && !playNextDismissed) {
-                        if (isDev) console.log('Showing Play Next via manual interval!');                        if (art.fullscreen) {
+                    if (playNextEnabled && timeRemaining <= playNextShowThreshold && timeRemaining > 0 && !showPlayNext && !playNextDismissed) {
+                        if (isDev) console.log('Showing Play Next via manual interval!');                        
+                        if (art.fullscreen) {
                             if (isDev) console.log('User was in fullscreen (manual interval), exiting fullscreen and setting sessionStorage flag immediately');
                             setWasInFullscreen(true);
                             sessionStorage.setItem('restoreFullscreen', 'true');
@@ -477,14 +482,15 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
                         playNextCountdownInterval.current = setInterval(() => {
                             if (art && art.duration && art.currentTime) {
                                 const currentTimeRemaining = art.duration - art.currentTime;
-                                if (currentTimeRemaining <= 0) {                                    clearInterval(playNextCountdownInterval.current);
+                                if (currentTimeRemaining <= 0) {                                    
+                                    clearInterval(playNextCountdownInterval.current);
                                     playNextCountdownInterval.current = null;
                                     setShowPlayNext(false);
                                 } else {
                                     setPlayNextCountdown(Math.ceil(currentTimeRemaining));
                                     
-                                    if (currentTimeRemaining <= 12 && !playNextDismissed) {
-                                        if (isDev) console.log('Auto-progressing at 12 seconds!');
+                                    if (currentTimeRemaining <= playNextAutoProgressThreshold && !playNextDismissed) {
+                                        if (isDev) console.log(`Auto-progressing at ${playNextAutoProgressThreshold} seconds!`);
                                         clearInterval(playNextCountdownInterval.current);
                                         playNextCountdownInterval.current = null;
                                         setShowPlayNext(false);
@@ -495,7 +501,7 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
                         }, 1000);
                     }
 
-                    if (timeRemaining > 40 && showPlayNext) {
+                    if (timeRemaining > playNextShowThreshold && showPlayNext) {
                         setShowPlayNext(false);
                         setPlayNextDismissed(false);
                         if (playNextCountdownInterval.current) {
@@ -509,9 +515,11 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
         
         const handleTimeUpdate = () => {            
             if (type === 'Episode' && nextEpisode && art.duration && art.currentTime) {
-                const timeRemaining = art.duration - art.currentTime;                const playNextEnabled = getUserPreference('playNextEnabled', 'true') !== 'false';
-                  if (playNextEnabled && timeRemaining <= 40 && timeRemaining > 0 && !showPlayNext && !playNextDismissed) {
-                    if (isDev) console.log('Showing Play Next!');                    if (art.fullscreen) {
+                const timeRemaining = art.duration - art.currentTime;                
+                const playNextEnabled = getUserPreference('playNextEnabled', 'true') !== 'false';
+                  if (playNextEnabled && timeRemaining <= playNextShowThreshold && timeRemaining > 0 && !showPlayNext && !playNextDismissed) {
+                    if (isDev) console.log('Showing Play Next!');                    
+                    if (art.fullscreen) {
                         if (isDev) console.log('User was in fullscreen (timeupdate), exiting fullscreen and setting sessionStorage flag immediately');
                         setWasInFullscreen(true);
                         sessionStorage.setItem('restoreFullscreen', 'true');
@@ -529,8 +537,8 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
                         } else {
                             setPlayNextCountdown(Math.ceil(currentTimeRemaining));
                             
-                            if (currentTimeRemaining <= 12 && !playNextDismissed) {
-                                if (isDev) console.log('Auto-progressing at 12 seconds from timeupdate!');
+                            if (currentTimeRemaining <= playNextAutoProgressThreshold && !playNextDismissed) {
+                                if (isDev) console.log(`Auto-progressing at ${playNextAutoProgressThreshold} seconds from timeupdate!`);
                                 clearInterval(playNextCountdownInterval.current);
                                 playNextCountdownInterval.current = null;
                                 setShowPlayNext(false);
@@ -540,7 +548,7 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
                     }, 1000);                
                 }
 
-                if (timeRemaining > 40 && showPlayNext) {
+                if (timeRemaining > playNextShowThreshold && showPlayNext) {
                     setShowPlayNext(false);
                     setPlayNextDismissed(false);
                     if (playNextCountdownInterval.current) {
@@ -562,7 +570,8 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
                     }
                 }
             });
-        }        art.on('progress', () => {
+        }        
+        art.on('progress', () => {
             if (type === 'Episode' && nextEpisode && art.duration && art.currentTime) {
                 const timeRemaining = art.duration - art.currentTime;
                 const playNextEnabled = getUserPreference('playNextEnabled', 'true') !== 'false';
@@ -570,7 +579,7 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
                     console.log('Progress event - timeRemaining:', timeRemaining, 'playNextEnabled:', playNextEnabled, 'dismissed:', playNextDismissed);
                 }
                 
-                if (playNextEnabled && timeRemaining <= 40 && timeRemaining > 0 && !showPlayNext && !playNextDismissed) {
+                if (playNextEnabled && timeRemaining <= playNextShowThreshold && timeRemaining > 0 && !showPlayNext && !playNextDismissed) {
                     if (isDev) console.log('Showing Play Next via progress event!');
                     setShowPlayNext(true);
                     setPlayNextCountdown(Math.ceil(timeRemaining));
@@ -580,7 +589,8 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
 
         art.on('loadeddata', () => {
             if (isDev) console.log('Video loadeddata event fired');
-        });        const cleanupPlayNext = () => {
+        });        
+        const cleanupPlayNext = () => {
             if (playNextCountdownInterval.current) {
                 clearInterval(playNextCountdownInterval.current);
                 playNextCountdownInterval.current = null;
@@ -707,11 +717,14 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
             
             if (isDev) console.log(`WatchPlayer cleanup completed for ${playerId}`);
         };
-    }, [src, poster, status, stopPlayback, stopPlaybackSilent, containerReady]);    const handleCloseStats = () => {
+    }, [src, poster, status, stopPlayback, stopPlaybackSilent, containerReady, playNextShowThreshold, playNextAutoProgressThreshold]);    
+    const handleCloseStats = () => {
         setShowStats(false);
     };    const handlePlayNext = () => {
-        if (nextEpisode && currentSeriesData) {            const nextEpisodeUrl = `/watch?id=${nextEpisode.Id}&type=Episode&seriesId=${currentSeriesData.Id}`;
-            if (isDev) console.log('Manually progressing to next episode:', nextEpisodeUrl);            if (wasInFullscreen) {
+        if (nextEpisode && currentSeriesData) {            
+            const nextEpisodeUrl = `/watch?id=${nextEpisode.Id}&type=Episode&seriesId=${currentSeriesData.Id}`;
+            if (isDev) console.log('Manually progressing to next episode:', nextEpisodeUrl);            
+            if (wasInFullscreen) {
                 if (isDev) console.log('wasInFullscreen is true, sessionStorage flag should already be set');
             }
             
@@ -720,8 +733,7 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
     };    const handleCancelPlayNext = () => {
         setShowPlayNext(false);
         setPlayNextDismissed(true);
-        
-        // Clear any active intervals
+
         if (playNextCountdownInterval.current) {
             clearInterval(playNextCountdownInterval.current);
             playNextCountdownInterval.current = null;
@@ -731,7 +743,7 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
             playNextCheckInterval.current = null;
         }
         
-        if (isDev) console.log('PlayNext dismissed - will not auto-progress at 12 seconds');
+        if (isDev) console.log(`PlayNext dismissed - will not auto-progress at ${playNextAutoProgressThreshold} seconds`);
     };
 
     if (status !== 'playing') return null;
@@ -743,14 +755,15 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
                 visible={showStats}
                 onClose={handleCloseStats}
                 art={artRef.current?.art}
-            />            
-            {showPlayNext && nextEpisode && currentSeriesData && (
+            />              {showPlayNext && nextEpisode && currentSeriesData && (
                 <PlayNext
                     visible={showPlayNext}
                     secondsRemaining={playNextCountdown}
                     nextEpisodeInfo={getNextEpisodeInfo(nextEpisode, currentSeriesData)}
                     onPlayNext={handlePlayNext}
                     onCancel={handleCancelPlayNext}
+                    showThreshold={playNextShowThreshold}
+                    autoProgressThreshold={playNextAutoProgressThreshold}
                 />
             )}
         </>

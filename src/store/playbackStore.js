@@ -2,12 +2,24 @@ import { API_BASE_URL, updateState } from '@/lib/api';
 import { getOrCreateGenSessionId } from '@/lib/genSessionId';
 import { create } from 'zustand';
 
-const usePlaybackStore = create((set, get) => ({    src: null,
+const usePlaybackStore = create((set, get) => ({    
+    src: null,
     status: 'idle',
     error: null,
     cleanupCallback: null,
     activePlayerId: null,
     currentContentId: null,
+    
+    playNextShowThreshold: 40,
+    playNextAutoProgressThreshold: 12,
+    
+    setPlayNextShowThreshold: (value) => {
+        set({ playNextShowThreshold: value });
+    },
+    
+    setPlayNextAutoProgressThreshold: (value) => {
+        set({ playNextAutoProgressThreshold: value });
+    },
     
     setCleanupCallback: (callback) => {
         set({ cleanupCallback: callback });
@@ -32,7 +44,8 @@ const usePlaybackStore = create((set, get) => ({    src: null,
         if (activePlayerId === playerId) {
             set({ activePlayerId: null });
         }
-    },      initializePlayback: async (id, type) => {
+    },      
+    initializePlayback: async (id, type) => {
         if (process.env.NODE_ENV === 'development') {
             console.log(`PlaybackStore: Initializing playback for ${type} ${id}`);
         }
@@ -48,7 +61,8 @@ const usePlaybackStore = create((set, get) => ({    src: null,
                 if (!shouldInitialize) {
                     if (process.env.NODE_ENV === 'development') console.log('PlaybackStore: Same content already playing, skipping re-initialization');
                     return;
-                }                const { cleanupCallback, activePlayerId } = get();
+                }                
+                const { cleanupCallback, activePlayerId } = get();
                 if (cleanupCallback) {
                     if (process.env.NODE_ENV === 'development') console.log('PlaybackStore: Cleaning up existing playback before initializing new one');
                     await cleanupCallback();
@@ -68,7 +82,8 @@ const usePlaybackStore = create((set, get) => ({    src: null,
                 try {
                     const Cookies = (await import('js-cookie')).default;
                     const jellyAccessToken = Cookies.get('jellyAccessToken');
-                    const jellyUserId = Cookies.get('jellyUserId');                    if (jellyAccessToken && jellyUserId) {
+                    const jellyUserId = Cookies.get('jellyUserId');                    
+                    if (jellyAccessToken && jellyUserId) {
                         headers['Authorization'] = `monobar_user=${jellyUserId},monobar_token=${jellyAccessToken}`;
                         if (process.env.NODE_ENV === 'development') console.log('PlaybackStore: Added authorization headers');
                     }
@@ -91,7 +106,8 @@ const usePlaybackStore = create((set, get) => ({    src: null,
                 const data = await response.json();
                 if (!data.playbackUrl) {
                     throw new Error('Invalid playback response from server');
-                }                if (process.env.NODE_ENV === 'development') console.log('PlaybackStore: Playback initialized successfully');
+                }                
+                if (process.env.NODE_ENV === 'development') console.log('PlaybackStore: Playback initialized successfully');
                 set({
                     src: data.playbackUrl,
                     status: 'playing',
@@ -139,7 +155,8 @@ const usePlaybackStore = create((set, get) => ({    src: null,
         } catch (error) {
             if (process.env.NODE_ENV === 'development') {
                  console.error('Unable to report stopped playback status!\n', error);
-            }        } finally {
+            }        
+        } finally {
             set({ 
                 status: 'stopped',
                 src: null,
@@ -155,9 +172,11 @@ const usePlaybackStore = create((set, get) => ({    src: null,
         const { cleanupCallback, activePlayerId } = get();
         if (cleanupCallback) {
             cleanupCallback();
-        }        if (activePlayerId) {
+        }        
+        if (activePlayerId) {
             if (process.env.NODE_ENV === 'development') console.log(`Silently clearing active player ${activePlayerId}`);
-        }        set({ 
+        }        
+        set({ 
             status: 'stopped',
             src: null,
             error: null,

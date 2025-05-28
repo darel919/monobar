@@ -41,6 +41,23 @@ export default function WatchPage() {
                     setFetchError("No data returned.");
                     setWatchData(null);
                     return;
+                }                
+                if (type === 'Series') {
+                    if (data.availableSeasons && data.availableSeasons.length > 0) {
+                        const firstSeason = data.availableSeasons[0];
+                        if (firstSeason.episodes && firstSeason.episodes.length > 0) {
+                            const firstEpisode = firstSeason.episodes[0];
+                            if (isDev) {
+                                console.log("Redirecting from series to first episode:", firstEpisode);
+                            }
+                            router.replace(`/watch?id=${firstEpisode.Id}&type=Episode&seriesId=${id}`);
+                            return;
+                        }
+                    }
+                    // If no episodes found, show error
+                    setFetchError("No episodes available for this series.");
+                    setWatchData(null);
+                    return;
                 }
 
                 setWatchData(data);
