@@ -81,13 +81,15 @@ export const useAuthStore = create(
           jellyAuthFailed: false, 
           jellyAuthError: null 
         });
-      },      
-      retryJellyAuth: async () => {
+      },        retryJellyAuth: async () => {
         const currentState = get();
-        if (currentState.userSession?.user?.user?.user_metadata?.provider_id) {
+        const providerId = currentState.userSession?.user?.user_metadata?.provider_id || 
+                          currentState.userSession?.user?.user?.user_metadata?.provider_id ||
+                          currentState.userSession?.user?.id;
 
+        if (providerId) {
           set({ jellyAuthFailed: false, jellyAuthError: null });
-          await get().fetchJellyId(currentState.userSession.user.user.user_metadata.provider_id);
+          await get().fetchJellyId(providerId);
         } else {
           throw new Error('No valid user session available for Jelly authentication');
         }

@@ -48,6 +48,26 @@ const getCookieValue = async (name) => {
 
 export { API_BASE_URL, getEnvironmentHeader, getCookieValue };
 
+async function handleAuthRetry(response, retryCallback, retryCount = 0) {
+    if (response.status === 401 && retryCount === 0 && typeof window !== 'undefined') {
+        try {
+            const { useAuthStore } = await import('@/lib/authStore');
+            const authStore = useAuthStore.getState();
+            
+            if (authStore.isAuthenticated && authStore.userSession?.user?.user?.user_metadata?.provider_id) {
+                console.log('401 detected, attempting to refresh Jellyfin authentication...');
+                await authStore.retryJellyAuth();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                return retryCallback();
+            }
+        } catch (retryError) {
+            console.error('Failed to retry Jellyfin authentication:', retryError);
+        }
+    }
+    return null;
+}
+
 export async function getJellyId(providerId) {
     if (!providerId) {
         throw new Error('Provider ID is required for Jelly authentication');
@@ -85,7 +105,7 @@ export async function getJellyId(providerId) {
     }
 }
 
-export async function serverFetch(endpoint, options = {}, providerId) {
+export async function serverFetch(endpoint, options = {}, providerId, retryCount = 0) {
     const url = `${API_BASE_URL}${endpoint}`;
     const headers = {
         'Content-Type': 'application/json',
@@ -96,41 +116,47 @@ export async function serverFetch(endpoint, options = {}, providerId) {
     };
 
     if (typeof window !== 'undefined') {
-
         const genSessionId = localStorage.getItem('genSessionId');
         if (genSessionId) {
             headers['X-Session-ID'] = genSessionId;
         }
-    } else {
-
-    }
-
-    if (!endpoint.startsWith('/request')) {
+    }    if (!endpoint.startsWith('/request')) {
         const jellyAccessToken = await getCookieValue('jellyAccessToken');
         const jellyUserId = await getCookieValue('jellyUserId');
-        
 
         if (jellyAccessToken && jellyUserId) {
             const authHeader = `monobar_user=${jellyUserId},monobar_token=${jellyAccessToken}`;
             headers['Authorization'] = authHeader;
-          
-        } else {
-
         }
-    } else {
-       
     }
 
-    
     const fetchOptions = {
         ...options,
         cache: 'no-store',
         headers,
     };
-    
 
-    
-    const response = await fetch(url, fetchOptions);
+    const response = await fetch(url, fetchOptions);    if (response.status === 401 && retryCount === 0 && typeof window !== 'undefined') {
+        try {
+            const { useAuthStore } = await import('@/lib/authStore');
+            const authStore = useAuthStore.getState();
+            
+            const providerId = authStore.userSession?.user?.user_metadata?.provider_id || 
+                              authStore.userSession?.user?.user?.user_metadata?.provider_id ||
+                              authStore.userSession?.user?.id;
+            
+            if (authStore.isAuthenticated && providerId) {
+                console.log('401 detected, attempting to refresh Jellyfin authentication...');
+                await authStore.retryJellyAuth();
+                
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                return serverFetch(endpoint, options, providerId, retryCount + 1);
+            }
+        } catch (retryError) {
+            console.error('Failed to retry Jellyfin authentication:', retryError);
+        }
+    }
 
     if (!response.ok) {
         throw new Error(`API error: ${response.status} ${response.statusText}`);
@@ -157,7 +183,7 @@ export async function getHome() {
     return serverFetch(`/`);
 }
 
-export async function getMovieData(id, intent, providerId) {
+export async function getMovieData(id, intent, providerId, retryCount = 0) {
     try {
         const headers = {
             "X-Environment": getEnvironmentHeader(),
@@ -174,6 +200,25 @@ export async function getMovieData(id, intent, providerId) {
         const res = await fetch(`${API_BASE_URL}/watch?intent=${intent}&id=${id}`, { 
             headers
         });
+
+        if (res.status === 401 && retryCount === 0 && typeof window !== 'undefined') {
+            try {
+                const { useAuthStore } = await import('@/lib/authStore');
+                const authStore = useAuthStore.getState();
+                
+                if (authStore.isAuthenticated && authStore.userSession?.user?.user?.user_metadata?.provider_id) {
+                    console.log('401 detected in getMovieData, attempting to refresh Jellyfin authentication...');
+                    await authStore.retryJellyAuth();
+                    
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    return getMovieData(id, intent, providerId, retryCount + 1);
+                }
+            } catch (retryError) {
+                console.error('Failed to retry Jellyfin authentication in getMovieData:', retryError);
+            }
+        }
+
         if (!res.ok) {
             if (res.status === 404) {
                 throw new Error("Video not found. It may have been removed, unavailable, or you might have an invalid link.");
@@ -189,7 +234,7 @@ export async function getMovieData(id, intent, providerId) {
     }
 }
 
-export async function getTypeData(options = {}, providerId) {
+export async function getTypeData(options = {}, providerId, retryCount = 0) {
     const params = new URLSearchParams();
     if (options.id) params.append('id', options.id);
     if (options.sortBy) params.append('sortBy', options.sortBy);
@@ -211,6 +256,25 @@ export async function getTypeData(options = {}, providerId) {
         const res = await fetch(`${API_BASE_URL}/library?${query}`, {
             headers
         });
+
+        if (res.status === 401 && retryCount === 0 && typeof window !== 'undefined') {
+            try {
+                const { useAuthStore } = await import('@/lib/authStore');
+                const authStore = useAuthStore.getState();
+                
+                if (authStore.isAuthenticated && authStore.userSession?.user?.user?.user_metadata?.provider_id) {
+                    console.log('401 detected in getTypeData, attempting to refresh Jellyfin authentication...');
+                    await authStore.retryJellyAuth();
+                    
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    return getTypeData(options, providerId, retryCount + 1);
+                }
+            } catch (retryError) {
+                console.error('Failed to retry Jellyfin authentication in getTypeData:', retryError);
+            }
+        }
+
         if (!res.ok) {
             if (res.status === 404) {
                 throw new Error("Video not found. It may have been removed, unavailable, or you might have an invalid link.");
@@ -226,7 +290,7 @@ export async function getTypeData(options = {}, providerId) {
     }
 }
 
-export async function getAllGenres() {
+export async function getAllGenres(retryCount = 0) {
     try {
         const headers = {
             "X-Environment": getEnvironmentHeader(),
@@ -243,6 +307,25 @@ export async function getAllGenres() {
         const res = await fetch(`${API_BASE_URL}/library/genres`, {
             headers
         });
+
+        if (res.status === 401 && retryCount === 0 && typeof window !== 'undefined') {
+            try {
+                const { useAuthStore } = await import('@/lib/authStore');
+                const authStore = useAuthStore.getState();
+                
+                if (authStore.isAuthenticated && authStore.userSession?.user?.user?.user_metadata?.provider_id) {
+                    console.log('401 detected in getAllGenres, attempting to refresh Jellyfin authentication...');
+                    await authStore.retryJellyAuth();
+                    
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    return getAllGenres(retryCount + 1);
+                }
+            } catch (retryError) {
+                console.error('Failed to retry Jellyfin authentication in getAllGenres:', retryError);
+            }
+        }
+
         if (!res.ok) {
             console.log(res)
             throw new Error(`Failed to fetch genres (HTTP ${res.status})`);
@@ -256,7 +339,7 @@ export async function getAllGenres() {
     }
 }
 
-export async function getGenreData(options = {}) {
+export async function getGenreData(options = {}, retryCount = 0) {
     const params = new URLSearchParams();
     if (options.genreId) params.append('id', options.genreId);
     if (options.sortBy) params.append('sortBy', options.sortBy);
@@ -279,6 +362,25 @@ export async function getGenreData(options = {}) {
         const res = await fetch(`${API_BASE_URL}/library/genre?${query}`, {
             headers
         });
+
+        if (res.status === 401 && retryCount === 0 && typeof window !== 'undefined') {
+            try {
+                const { useAuthStore } = await import('@/lib/authStore');
+                const authStore = useAuthStore.getState();
+                
+                if (authStore.isAuthenticated && authStore.userSession?.user?.user?.user_metadata?.provider_id) {
+                    console.log('401 detected in getGenreData, attempting to refresh Jellyfin authentication...');
+                    await authStore.retryJellyAuth();
+                    
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    return getGenreData(options, retryCount + 1);
+                }
+            } catch (retryError) {
+                console.error('Failed to retry Jellyfin authentication in getGenreData:', retryError);
+            }
+        }
+
         if (!res.ok) {
             if (res.status === 404) {
                 console.log(res)
@@ -296,7 +398,7 @@ export async function getGenreData(options = {}) {
     }
 }
 
-export async function updateState(genSessionId) {
+export async function updateState(genSessionId, retryCount = 0) {
     if (!genSessionId) {
         console.warn("No session ID provided for updateState");
         return;
@@ -319,6 +421,25 @@ export async function updateState(genSessionId) {
             method: 'DELETE',
             headers
         });
+
+        if (res.status === 401 && retryCount === 0 && typeof window !== 'undefined') {
+            try {
+                const { useAuthStore } = await import('@/lib/authStore');
+                const authStore = useAuthStore.getState();
+                
+                if (authStore.isAuthenticated && authStore.userSession?.user?.user?.user_metadata?.provider_id) {
+                    console.log('401 detected in updateState, attempting to refresh Jellyfin authentication...');
+                    await authStore.retryJellyAuth();
+                    
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    return updateState(genSessionId, retryCount + 1);
+                }
+            } catch (retryError) {
+                console.error('Failed to retry Jellyfin authentication in updateState:', retryError);
+            }
+        }
+
         if (!res.ok) {
             throw new Error(`Failed to update playback status (HTTP ${res.status})`);
         }
@@ -329,14 +450,16 @@ export async function updateState(genSessionId) {
     }
 }
 
-export async function search(query, options = {}) {
+export async function search(query, options = {}, retryCount = 0) {
     let url = `${API_BASE_URL}/search?q=${encodeURIComponent(query)}`;
     if (options.includeExternal) {
         url += `&includeRequest=true`;
     }
     if (options.type) {
         url += `&type=${encodeURIComponent(options.type)}`;
-    }try {        const headers = {
+    }
+    try {        
+        const headers = {
             "X-Environment": getEnvironmentHeader(),
             'User-Agent': 'dp-Monobar',
             'Origin': typeof window !== 'undefined' ? window.location.origin : ''
@@ -351,6 +474,25 @@ export async function search(query, options = {}) {
         const res = await fetch(url, {
             headers
         });
+
+        if (res.status === 401 && retryCount === 0 && typeof window !== 'undefined') {
+            try {
+                const { useAuthStore } = await import('@/lib/authStore');
+                const authStore = useAuthStore.getState();
+                
+                if (authStore.isAuthenticated && authStore.userSession?.user?.user?.user_metadata?.provider_id) {
+                    console.log('401 detected in search, attempting to refresh Jellyfin authentication...');
+                    await authStore.retryJellyAuth();
+                    
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    return search(query, options, retryCount + 1);
+                }
+            } catch (retryError) {
+                console.error('Failed to retry Jellyfin authentication in search:', retryError);
+            }
+        }
+
         if (!res.ok) {
             throw new Error(`Failed to fetch search results (HTTP ${res.status})`);
         }

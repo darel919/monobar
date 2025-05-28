@@ -7,6 +7,7 @@ import ScrollToTop from "@/components/ScrollToTop";
 import SessionInitializer from '@/components/SessionInitializer';
 import AuthSessionInitializer from '@/components/AuthSessionInitializer';
 import ThemeInitializer from '@/components/ThemeInitializer';
+import UrlDetector from '@/components/homeDetection';
 import "./globals.css";
 import Navbar from '@/components/Navbar';
 
@@ -24,6 +25,7 @@ export default function RootLayout({
         <ThemeInitializer />
         <SessionInitializer />
         <AuthSessionInitializer />
+        <UrlDetector />
         <Suspense fallback={
           <div className="navbar bg-base-100 shadow-lg fixed top-0 left-0 right-0 z-50">
             <div className="flex-1">

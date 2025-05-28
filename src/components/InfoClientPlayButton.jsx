@@ -8,29 +8,9 @@ import { getEnvironmentHeader, getCookieValue } from '@/lib/api';
 export default function ClientPlayButton({ id, type, playUrl, seriesData }) {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [playbackData, setPlaybackData] = useState(null);
-    const router = useRouter();
+    const [playbackData, setPlaybackData] = useState(null);    const router = useRouter();
 
     useEffect(() => {
-        async function detectIsHome() {
-            if(process.env.NODE_ENV === "development") return;
-            if (window.location.hostname === "monobar.server.drl") return;
-            try {
-                const res = await fetch(process.env.NEXT_PUBLIC_DARELISME_PING_URL, { 
-                    cache: "no-store", 
-                    timeout: 5000 
-                });
-                if (res.ok) return;
-                
-                localStorage.setItem('redirectAfterSwitch', window.location.pathname + window.location.search);
-                window.location.href = process.env.NEXT_PUBLIC_APP_LOCAL_BASE_URL + window.location.pathname + window.location.search;
-            } catch {
-                localStorage.setItem('redirectAfterSwitch', window.location.pathname + window.location.search);
-                window.location.href = process.env.NEXT_PUBLIC_APP_LOCAL_BASE_URL + window.location.pathname + window.location.search;
-            }
-        }
-        detectIsHome();
-    }, []);    useEffect(() => {
         let mounted = true;   
         if(typeof window === 'undefined') return;
              
