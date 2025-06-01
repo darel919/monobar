@@ -13,6 +13,38 @@ import StatsForNerds from "./WatchPlayerStats";
 import PlayNext from "./PlayNext";
 import { findNextEpisode, isAtAbsoluteEnd, getNextEpisodeInfo } from "@/lib/episodeUtils";
 import { getMovieData } from "@/lib/api";
+import Settings from './Settings';
+
+function SettingsModal({ onClose, shouldRestoreFullscreen, art }) {
+    const handleClose = () => {
+        onClose();
+        if (shouldRestoreFullscreen && art) {
+            setTimeout(() => {
+                art.fullscreen = true;
+            }, 100);
+        }
+    };
+
+    return (
+        <div className="modal modal-open">
+            <div className="modal-box max-w-4xl max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="font-bold text-lg">Player Settings</h3>
+                    <button 
+                        className="btn btn-sm btn-circle btn-ghost"
+                        onClick={handleClose}
+                    >✕</button>
+                </div>
+
+                <Settings showBackButton={false} context="player" />
+
+                <div className="modal-action">
+                    <button className="btn" onClick={handleClose}>Close</button>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default function Player({ poster, fullData, id, type, seriesData }) {
     const artRef = useRef();    
@@ -29,17 +61,19 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
     const playNextAutoProgressThreshold = usePlaybackStore(useCallback(state => state.playNextAutoProgressThreshold, []));
     const [playbackEnded, setPlaybackEnded] = useState(false);
     const [showStats, setShowStats] = useState(false);
-    const [playerMounted, setPlayerMounted] = useState(false);      const [showPlayNext, setShowPlayNext] = useState(false);
+    const [playerMounted, setPlayerMounted] = useState(false);      
+    const [showPlayNext, setShowPlayNext] = useState(false);
     const [playNextCountdown, setPlayNextCountdown] = useState(playNextShowThreshold);
     const [playNextDismissed, setPlayNextDismissed] = useState(false);
     const [nextEpisode, setNextEpisode] = useState(null);
-    const [currentSeriesData, setCurrentSeriesData] = useState(seriesData);
+    const [currentSeriesData, setCurrentSeriesData] = useState(seriesData);        
     const [wasInFullscreen, setWasInFullscreen] = useState(false);
+    const [showSettingsModal, setShowSettingsModal] = useState(false);      
     const playNextCountdownInterval = useRef(null);
     const playNextCheckInterval = useRef(null);
     const playerId = useRef(`player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`).current;
 
-    const [containerReady, setContainerReady] = useState(false);    
+    const [containerReady, setContainerReady] = useState(false);        
     useEffect(() => {
         setContainerReady(false);
         setPlayNextDismissed(false);
@@ -73,13 +107,21 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
         } catch {
             return fallback;
         }
-    };
-
-    const setUserPreference = (key, value) => {
+    };    const setUserPreference = (key, value) => {
         if (typeof window === 'undefined') return;
         try {
             localStorage.setItem(key, value);
         } catch {}
+    };
+
+    const getSubtitleFontSize = (sizePreference) => {
+        const sizeMap = {
+            'small': '16px',
+            'medium': '22px',
+            'large': '28px',
+            'x-large': '36px'
+        };
+        return sizeMap[sizePreference] || sizeMap['medium'];
     };
 
     const adaptSubtitleFormat = () => {
@@ -176,18 +218,20 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
         Artplayer.AUTO_PLAYBACK_TIMEOUT = 15000;
         Artplayer.RECONNECT_SLEEP_TIME  = 3000;
         Artplayer.RECONNECT_TIME_MAX  = 7;
-        const subtitles = adaptSubtitleFormat();
+        const subtitles = adaptSubtitleFormat();        
         let subtitlePref = getUserPreference('subtitlePref', null);
+        let subtitleSizePref = getUserPreference('subtitleSize', 'medium');
         let selectedSubtitle = null;
         if (subtitles.length > 0) {
             if (subtitlePref) {
                 selectedSubtitle = subtitles.find(s => s.name === subtitlePref || s.html === subtitlePref);
             }
             if (!selectedSubtitle) {
-                selectedSubtitle = subtitles.find(s => /english/i.test(s.name)) || subtitles[0];
-            }
+                selectedSubtitle = subtitles[0];
+            }        
         }
         let userQualitySelected = false;
+
         const art = new Artplayer({
             container: artRef.current,
             url: src,
@@ -205,35 +249,65 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
             airplay: true,
             theme: '#ff0000',
             type: 'm3u8',
-            autoMini: true,
-            contextmenu: [
-                {
-                    html: 'Stats for Nerds',
-                    click: function () {
-                        setShowStats((prev) => !prev);
-                    }
-                }
-            ],
+            autoMini: true,              
+            contextmenu: [],
             subtitle: selectedSubtitle ? {
                 url: selectedSubtitle.url,
                 type: 'vtt',
                 escape: false,
                 encoding: 'utf-8',
-            } : {},            
+            } : {},                
             settings: [
                 ...(subtitles.length > 0 ? [{
                     width: 250,
                     html: 'Subtitle',
                     tooltip: selectedSubtitle?.name,
-                    selector: subtitles,
+                    selector: subtitles,                    
                     onSelect: function (item) {
                         art.subtitle.switch(item.url, {
                             name: item.html,
                         });
                         setUserPreference('subtitlePref', item.name);
+                        setTimeout(() => {
+                            const currentSubtitleSizePref = getUserPreference('subtitleSize', 'medium');
+                            const fontSize = getSubtitleFontSize(currentSubtitleSizePref);
+                            art.subtitle.style({
+                                fontSize: fontSize,
+                                textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
+                                fontWeight: 'bold'
+                            });
+                        }, 100);
+                        
                         return item.html;
-                    },
-                }] : [])
+                    },                  
+                }] : []),
+                {
+                    html: 'Stats for Nerds',
+                    onClick: function () {
+                        if (art.fullscreen) {
+                            setWasInFullscreen(true);
+                            art.fullscreen = false;
+                        } else {
+                            setWasInFullscreen(false);
+                        }
+                        setShowStats(prev => !prev);
+                        return '';
+                    }
+                },
+                {
+                    html: 'Player Settings',
+                    tooltip: 'Open advanced settings',                    
+                    onClick: function () {
+                        if (art.fullscreen) {
+                            setWasInFullscreen(true);
+                            art.fullscreen = false;
+                        } else {
+                            setWasInFullscreen(false);
+                        }
+                        setShowSettingsModal(true);
+                        return '';
+                    }
+                }
             ],
             plugins: [
                 artplayerPluginHlsControl({
@@ -366,21 +440,49 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
             if (!art.paused) {
                 postStatus('play', getStatusData());
                 startStatusInterval();
-            }            const shouldRestoreFullscreen = sessionStorage.getItem('restoreFullscreen');
+            }              
+            const shouldRestoreFullscreen = sessionStorage.getItem('restoreFullscreen');
             if (isDev) console.log('Checking fullscreen restoration:', shouldRestoreFullscreen);
             if (shouldRestoreFullscreen === 'true') {
                 sessionStorage.removeItem('restoreFullscreen');
-                if (isDev) console.log('Will restore fullscreen on first user interaction...');
+                if (isDev) console.log('Attempting immediate fullscreen restoration...');
                 
-                const restoreFullscreenOnInteraction = () => {
-                    if (isDev) console.log('User interacted - restoring fullscreen now');
-                    art.fullscreen = true;
-                    art.off('click', restoreFullscreenOnInteraction);
-                    document.removeEventListener('keydown', restoreFullscreenOnInteraction);
-                };
-                
-                art.on('click', restoreFullscreenOnInteraction);
-                document.addEventListener('keydown', restoreFullscreenOnInteraction);
+                art.fullscreen = true;                
+                setTimeout(() => {
+                    if (!art.fullscreen) {
+                        if (isDev) console.warn('Immediate fullscreen failed, setting up user interaction listener');
+                        
+                        let shouldRestore = false;
+                        
+                        const onMouseMove = () => {
+                            shouldRestore = true;
+                            document.removeEventListener('mousemove', onMouseMove);
+                            if (isDev) console.log('Mouse movement detected - fullscreen will restore on next valid interaction');
+                        };
+                        
+                        const restoreFullscreenOnValidGesture = (event) => {
+                            if (shouldRestore) {
+                                if (isDev) console.log('Valid user gesture detected - restoring fullscreen now');
+                                art.fullscreen = true;
+                                cleanup();
+                            }
+                        };
+                        
+                        const cleanup = () => {
+                            document.removeEventListener('mousemove', onMouseMove);
+                            document.removeEventListener('keydown', restoreFullscreenOnValidGesture);
+                            document.removeEventListener('click', restoreFullscreenOnValidGesture);
+                            art.off('click', restoreFullscreenOnValidGesture);
+                        };
+                        
+                        document.addEventListener('mousemove', onMouseMove);
+                        document.addEventListener('keydown', restoreFullscreenOnValidGesture);
+                        document.addEventListener('click', restoreFullscreenOnValidGesture);
+                        art.on('click', restoreFullscreenOnValidGesture);
+                    } else {
+                        if (isDev) console.log('Immediate fullscreen restoration successful');
+                    }
+                }, 100);
             }
         });
 
@@ -416,19 +518,21 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
 
         art.on('seeked', () => {
             postStatus('seek', getStatusData());
-        });        
+        });          
         const handleEnd = () => {
             try {
                 postStatus('stop', getStatusData());
-                stopStatusInterval();                
+                stopStatusInterval();                  
                 if (type === 'Episode' && currentSeriesData && nextEpisode) {                    
-                    if (wasInFullscreen) {
-                        if (isDev) console.log('wasInFullscreen is true, sessionStorage flag should already be set');
+                    const shouldRestoreFullscreen = wasInFullscreen || (artRef.current?.art && artRef.current.art.fullscreen);
+                    if (shouldRestoreFullscreen) {
+                        if (isDev) console.log('Should restore fullscreen - setting sessionStorage flag for next page');
+                        sessionStorage.setItem('restoreFullscreen', 'true');
                     }
 
                     const nextEpisodeUrl = `/watch?id=${nextEpisode.Id}&type=Episode&seriesId=${currentSeriesData.Id}`;
                     if (isDev) console.log('Auto-progressing to next episode:', nextEpisodeUrl);
-                    router.replace(nextEpisodeUrl);
+                    router.push(nextEpisodeUrl);
                     return;
                 }
 
@@ -463,12 +567,11 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
                     
                     if (isDev && timeRemaining <= 45) {
                         console.log('Manual check - timeRemaining:', timeRemaining, 'playNextEnabled:', playNextEnabled, 'showPlayNext:', showPlayNext, 'dismissed:', playNextDismissed);
-                    }
-                    
+                    }                      
                     if (playNextEnabled && timeRemaining <= playNextShowThreshold && timeRemaining > 0 && !showPlayNext && !playNextDismissed) {
                         if (isDev) console.log('Showing Play Next via manual interval!');                        
                         if (art.fullscreen) {
-                            if (isDev) console.log('User was in fullscreen (manual interval), exiting fullscreen and setting sessionStorage flag immediately');
+                            if (isDev) console.log('User was in fullscreen (manual interval), exiting fullscreen and marking for restoration');
                             setWasInFullscreen(true);
                             sessionStorage.setItem('restoreFullscreen', 'true');
                             art.fullscreen = false;
@@ -488,9 +591,8 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
                                     setShowPlayNext(false);
                                 } else {
                                     setPlayNextCountdown(Math.ceil(currentTimeRemaining));
-                                    
-                                    if (currentTimeRemaining <= playNextAutoProgressThreshold && !playNextDismissed) {
-                                        if (isDev) console.log(`Auto-progressing at ${playNextAutoProgressThreshold} seconds!`);
+                                      if (currentTimeRemaining <= playNextAutoProgressThreshold && !playNextDismissed) {
+                                        if (isDev) console.log(`Auto-progressing at ${playNextAutoProgressThreshold} seconds! Current fullscreen:`, art.fullscreen);
                                         clearInterval(playNextCountdownInterval.current);
                                         playNextCountdownInterval.current = null;
                                         setShowPlayNext(false);
@@ -516,16 +618,15 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
         const handleTimeUpdate = () => {            
             if (type === 'Episode' && nextEpisode && art.duration && art.currentTime) {
                 const timeRemaining = art.duration - art.currentTime;                
-                const playNextEnabled = getUserPreference('playNextEnabled', 'true') !== 'false';
-                  if (playNextEnabled && timeRemaining <= playNextShowThreshold && timeRemaining > 0 && !showPlayNext && !playNextDismissed) {
+                const playNextEnabled = getUserPreference('playNextEnabled', 'true') !== 'false';                if (playNextEnabled && timeRemaining <= playNextShowThreshold && timeRemaining > 0 && !showPlayNext && !playNextDismissed) {
                     if (isDev) console.log('Showing Play Next!');                    
                     if (art.fullscreen) {
-                        if (isDev) console.log('User was in fullscreen (timeupdate), exiting fullscreen and setting sessionStorage flag immediately');
+                        if (isDev) console.log('User was in fullscreen (timeupdate), exiting fullscreen and marking for restoration');
                         setWasInFullscreen(true);
                         sessionStorage.setItem('restoreFullscreen', 'true');
                         art.fullscreen = false;
                     }
-                      setShowPlayNext(true);
+                    setShowPlayNext(true);
                     setPlayNextCountdown(Math.ceil(timeRemaining));
 
                     playNextCountdownInterval.current = setInterval(() => {
@@ -536,9 +637,8 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
                             setShowPlayNext(false);
                         } else {
                             setPlayNextCountdown(Math.ceil(currentTimeRemaining));
-                            
-                            if (currentTimeRemaining <= playNextAutoProgressThreshold && !playNextDismissed) {
-                                if (isDev) console.log(`Auto-progressing at ${playNextAutoProgressThreshold} seconds from timeupdate!`);
+                              if (currentTimeRemaining <= playNextAutoProgressThreshold && !playNextDismissed) {
+                                if (isDev) console.log(`Auto-progressing at ${playNextAutoProgressThreshold} seconds from timeupdate! Current fullscreen:`, art.fullscreen);
                                 clearInterval(playNextCountdownInterval.current);
                                 playNextCountdownInterval.current = null;
                                 setShowPlayNext(false);
@@ -635,9 +735,33 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
                 if (level && level.height) {
                     setUserPreference('qualityPref', level.height + 'P');
                 }
-            });
+            });        
         }
-        artRef.current.art = art;
+        artRef.current.art = art;        // Apply subtitle styling based on user preference
+        const applySubtitleStyling = () => {
+            if (art && art.subtitle) {
+                const currentSubtitleSizePref = getUserPreference('subtitleSize', 'medium');
+                const fontSize = getSubtitleFontSize(currentSubtitleSizePref);
+                art.subtitle.style({
+                    fontSize: fontSize,
+                    textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
+                    fontWeight: 'bold'
+                });
+                if (isDev) console.log(`Applied subtitle styling with fontSize: ${fontSize}`);
+            }
+        };
+
+        // Apply styling immediately if subtitles are loaded
+        applySubtitleStyling();
+
+        // Also apply styling when subtitle changes
+        art.on('subtitleLoad', applySubtitleStyling);        // Listen for storage changes to update subtitle size in real-time
+        const handleStorageChange = (e) => {
+            if (e.key === 'subtitleSize') {
+                applySubtitleStyling();
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
 
         const immediateCleanup = () => {
             if (isDev) console.log(`Immediate HLS cleanup for ${playerId}`);
@@ -686,10 +810,13 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
                 return;
             }
             
-            clearInterval(timeupdateInterval);            
+            clearInterval(timeupdateInterval);              
             cleanupPlayNext();
             setShowStats(false);
             setPlayerMounted(false);
+            
+            // Remove storage event listener
+            window.removeEventListener('storage', handleStorageChange);
 
             clearActivePlayer(playerId);
             
@@ -717,20 +844,22 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
             
             if (isDev) console.log(`WatchPlayer cleanup completed for ${playerId}`);
         };
-    }, [src, poster, status, stopPlayback, stopPlaybackSilent, containerReady, playNextShowThreshold, playNextAutoProgressThreshold]);    
-    const handleCloseStats = () => {
+    }, [src, poster, status, stopPlayback, stopPlaybackSilent, containerReady, playNextShowThreshold, playNextAutoProgressThreshold]);      const handleCloseStats = () => {
         setShowStats(false);
+        if (wasInFullscreen && artRef.current?.art) {
+            setTimeout(() => {
+                artRef.current.art.fullscreen = true;
+            }, 100);
+        }
+        setWasInFullscreen(false);
     };    const handlePlayNext = () => {
         if (nextEpisode && currentSeriesData) {            
             const nextEpisodeUrl = `/watch?id=${nextEpisode.Id}&type=Episode&seriesId=${currentSeriesData.Id}`;
             if (isDev) console.log('Manually progressing to next episode:', nextEpisodeUrl);            
-            if (wasInFullscreen) {
-                if (isDev) console.log('wasInFullscreen is true, sessionStorage flag should already be set');
-            }
             
-            router.replace(nextEpisodeUrl);
+            router.push(nextEpisodeUrl);
         }
-    };    const handleCancelPlayNext = () => {
+    };const handleCancelPlayNext = () => {
         setShowPlayNext(false);
         setPlayNextDismissed(true);
 
@@ -743,12 +872,17 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
             playNextCheckInterval.current = null;
         }
         
+        if (wasInFullscreen && artRef.current?.art) {
+            setTimeout(() => {
+                artRef.current.art.fullscreen = true;
+            }, 100);
+        }
+        setWasInFullscreen(false);
+
         if (isDev) console.log(`PlayNext dismissed - will not auto-progress at ${playNextAutoProgressThreshold} seconds`);
     };
 
-    if (status !== 'playing') return null;
-
-    return (
+    if (status !== 'playing') return null;    return (
         <>
             <div ref={artRef} className="absolute w-full h-full left-0 right-0 top-0 bottom-0" />
             <StatsForNerds
@@ -764,6 +898,16 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
                     onCancel={handleCancelPlayNext}
                     showThreshold={playNextShowThreshold}
                     autoProgressThreshold={playNextAutoProgressThreshold}
+                />
+            )}
+              {showSettingsModal && (
+                <SettingsModal 
+                    onClose={() => {
+                        setShowSettingsModal(false);
+                        setWasInFullscreen(false);
+                    }}
+                    shouldRestoreFullscreen={wasInFullscreen}
+                    art={artRef.current?.art}
                 />
             )}
         </>

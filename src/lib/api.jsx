@@ -152,13 +152,25 @@ export async function serverFetch(endpoint, options = {}, providerId, retryCount
                 await new Promise(resolve => setTimeout(resolve, 500));
                 
                 return serverFetch(endpoint, options, providerId, retryCount + 1);
+            } else {
+                console.log('401 detected, clearing authentication cookies to trigger reauthentication flow...');
+                await authStore.clearAuth();
             }
         } catch (retryError) {
             console.error('Failed to retry Jellyfin authentication:', retryError);
+            const { useAuthStore } = await import('@/lib/authStore');
+            const authStore = useAuthStore.getState();
+            console.log('401 error - clearing authentication cookies...');
+            await authStore.clearAuth();
         }
-    }
-
+    } 
     if (!response.ok) {
+        if (response.status === 401 && retryCount > 0 && typeof window !== 'undefined') {
+            console.log('401 detected after retry, clearing authentication cookies...');
+            const { useAuthStore } = await import('@/lib/authStore');
+            const authStore = useAuthStore.getState();
+            await authStore.clearAuth();
+        }
         throw new Error(`API error: ${response.status} ${response.statusText}`);
     }
     return response.json();

@@ -23,7 +23,8 @@ export default function WatchPage() {
     const error = usePlaybackStore(state => state.error);
     const initializePlayback = usePlaybackStore(state => state.initializePlayback);
     const stopPlayback = usePlaybackStore(state => state.stopPlayback);
-    const isDev = process.env.NODE_ENV === "development";    useEffect(() => {
+    const isDev = process.env.NODE_ENV === "development";    
+    useEffect(() => {
         let mounted = true;
 
         async function fetchData() {
@@ -235,7 +236,7 @@ export default function WatchPage() {
     return (
         <section className="min-h-screen pt-20 pb-16 px-4">
             <div className="max-w-7xl mx-auto">
-                <div className="flex flex-col lg:flex-row gap-6">
+                <div className="flex flex-col lg:flex-row gap-4">
                     {/* Left Side - Player and Episode Data */}
                     <div className="flex-1 min-w-0">
                         {/* Player Section */}
@@ -247,7 +248,8 @@ export default function WatchPage() {
                                     <span className="loading loading-spinner loading-lg"></span>
                                 </div>
                             )}
-                        </div>                        {/* Episode Data Section */}
+                        </div>                        
+                        {/* Episode Data Section */}
                         <div className="bg-base-200 rounded-lg p-6">
                             {watchData ? (
                                 <div className="space-y-4">
