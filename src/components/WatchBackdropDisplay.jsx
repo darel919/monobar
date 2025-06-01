@@ -12,7 +12,7 @@ export default function WatchBackdropDisplay({ backdrop, src, className, playTra
   const playerRef = useRef(null);
   const containerRef = useRef(null);
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window !== 'undefined') console.warn('WatchBackdropDisplay is a client component and should not be used on the server. It will not work as expected if rendered on the server.');
     
     const tag = document.createElement('script');
     tag.src = 'https://www.youtube.com/iframe_api';

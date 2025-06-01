@@ -34,7 +34,6 @@ export default function WatchPage() {
             setFetchError(null);
 
             try {
-
                 const data = await getMovieData(id, "info");
                 if (!mounted) return;
 
@@ -252,22 +251,41 @@ export default function WatchPage() {
                         {/* Episode Data Section */}
                         <div className="bg-base-200 rounded-lg p-6">
                             {watchData ? (
-                                <div className="space-y-4">
+                                <div className="space-y-4">                                    
                                     <div>
                                         {type === 'Episode' && seriesData && (
-                                            <h2 className="text-lg font-medium text-base-content/80 mb-1">{seriesData.Name}</h2>
+                                            <section>
+                                                <div className="flex flex-col sm:flex-row sm:items-center">
+                                                    <div className="flex items-center">
+                                                        {seriesData?.ImageTags.Logo ? (
+                                                            <img 
+                                                                src={seriesData.ImageTags.Logo} 
+                                                                alt={seriesData.Name} 
+                                                                className="max-w-64 h-9 sm:my-1 my-4" 
+                                                            />
+                                                        ) : (<h2 className="text-xl font-bold text-primary">{seriesData.Name}</h2>)}
+                                                        
+                                                    </div>
+                                                    <div className="flex items-center gap-2 sm:ml-auto">
+                                                        <div className="badge badge-primary font-medium rounded-none">
+                                                            Season {watchData.ParentIndexNumber}
+                                                        </div>
+                                                        <span className="text-base-content/60">•</span>
+                                                        <div className="badge badge-secondary font-medium rounded-none">
+                                                            Episode {watchData.IndexNumber}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </section>
                                         )}
-                                        <h1 className="text-2xl font-bold mb-2">{watchData.Name}</h1>
-                                        {type === 'Episode' && (
-                                            <div className="text-sm text-base-content/70 mb-3">
-                                                Season {watchData.ParentIndexNumber} • Episode {watchData.IndexNumber}
-                                            </div>
-                                        )}
+
+                                        <h1 className="text-2xl font-bold my-2">{watchData.Name}</h1>
+
                                     </div>
                                     
                                     {watchData.Overview && (
                                         <div>
-                                            <h3 className="text-lg font-semibold mb-2">Overview</h3>
+                                            {/* <h3 className="text-lg font-semibold mb-2">Overview</h3> */}
                                             <p className="text-base-content/80 leading-relaxed">{watchData.Overview}</p>
                                         </div>
                                     )}
@@ -285,7 +303,7 @@ export default function WatchPage() {
                                         )}
                                         {watchData.CommunityRating && (
                                             <div>
-                                                <span className="font-medium">Rating:</span> {watchData.CommunityRating}/10
+                                                <span className="font-medium">Rating:</span> {watchData.CommunityRating.toFixed(1)}/10
                                             </div>
                                         )}
                                     </div>

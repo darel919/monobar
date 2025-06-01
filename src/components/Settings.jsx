@@ -133,31 +133,29 @@ export default function Settings({ showBackButton = true, context = 'standalone'
                 <div className="loading loading-spinner loading-lg"></div>
             </div>
         );
-    }
-
-    return (
-        <div className="space-y-6">
+    }    return (
+        <div className="space-y-6 overflow-x-hidden max-w-full">
             {/* Playback Settings */}
             <div className="card bg-base-200 shadow-xl">
-                <div className="card-body">
+                <div className="card-body overflow-x-hidden">
                     <h2 className="card-title text-2xl mb-4">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
                         </svg>
                         Playback
-                    </h2>                    
+                    </h2>
                     {/* Play Trailers Automatically - only show outside of player context */}
                     {context !== 'player' && (
-                        <div className="form-control">
-                            <label className="label cursor-pointer justify-start gap-4 flex flex-row items-start">
+                        <div className="form-control w-full">
+                            <label className="label cursor-pointer justify-start gap-4 flex flex-row flex-wrap items-start px-1">
                                 <input 
                                     type="checkbox" 
                                     className="toggle toggle-primary mt-1" 
                                     checked={settings.playTrailersAutomatically}
                                     onChange={handleTrailerToggle}
                                 />
-                                <div className="flex flex-col">
-                                    <span className="label-text text-lg font-medium">Play Trailers Automatically</span>
+                                <div className="flex flex-col flex-1">
+                                    <span className="label-text text-lg font-medium break-normal">Play Trailers Automatically</span>
                                     <p className="text-sm text-base-content/60 mt-1 whitespace-normal leading-snug">
                                         When enabled, trailers will automatically play on movie's info page.
                                     </p>
@@ -166,75 +164,79 @@ export default function Settings({ showBackButton = true, context = 'standalone'
                         </div>
                     )}
                     
-                    {/* Play Next for TV Series */}
-                    <div className="form-control">
-                        <label className="label cursor-pointer justify-start gap-4 flex flex-row items-start">
+                    {/* Play Next for TV Series */}                    
+                    <div className="form-control w-full">
+                        <label className="label cursor-pointer justify-start gap-4 flex flex-row flex-wrap items-start px-1">
                             <input 
                                 type="checkbox" 
                                 className="toggle toggle-primary mt-1" 
                                 checked={settings.playNextEnabled}
                                 onChange={handlePlayNextToggle}
                             />
-                            <div className="flex flex-col">
-                                <span className="label-text text-lg font-medium">Show "Play Next" for TV Series</span>
+                            <div className="flex flex-col flex-1">
+                                <span className="label-text text-lg font-medium break-normal">Show "Play Next" for TV Series</span>
                                 <p className="text-sm text-base-content/60 mt-1 whitespace-normal leading-snug">
                                     When enabled, shows a "Play Next" prompt {playNextShowThreshold} seconds before an episode ends, counting down to {playNextAutoProgressThreshold} seconds when it auto-progresses. You can dismiss it to let the video play to 0 seconds before progressing.
                                 </p>
                             </div>
                         </label>
-                    </div>
-
+                    </div>                    
                     {/* Play Next Timing Settings */}
                     {settings.playNextEnabled && (
-                        <div className="ml-8 space-y-4 border-l-2 border-base-300 pl-4">
-                            <div className="form-control">
-                                <label className="label">
-                                    <span className="label-text font-medium">Show "Play Next" at (seconds before end)</span>
-                                </label>
-                                <div className="flex items-center gap-3">
+                        <div className="mt-4 space-y-4">
+                            {/* Show "Play Next" Threshold */}
+                            <div className="rounded-lg bg-base-300/20 p-4">
+                                <div className="form-control">
+                                    <span className="text-sm font-medium mb-3">Show "Play Next" at (seconds before end)</span>
                                     <input 
                                         type="range" 
                                         min="15" 
                                         max="45" 
                                         value={playNextShowThreshold} 
-                                        className="range range-primary flex-1" 
+                                        className="range range-primary w-full" 
                                         onChange={handleShowThresholdChange}
                                     />
-                                    <input 
-                                        type="number" 
-                                        min="15" 
-                                        max="45" 
-                                        value={playNextShowThreshold} 
-                                        className="input input-bordered w-20 text-center" 
-                                        onChange={handleShowThresholdChange}
-                                    />
+                                    <div className="flex justify-between items-center mt-2">
+                                        <span className="text-sm opacity-70">15s</span>
+                                        <input 
+                                            type="number" 
+                                            min="15" 
+                                            max="45" 
+                                            value={playNextShowThreshold} 
+                                            className="input input-bordered input-sm w-16 text-center" 
+                                            onChange={handleShowThresholdChange}
+                                        />
+                                        <span className="text-sm opacity-70">45s</span>
+                                    </div>
                                 </div>
-                                <p className="text-xs text-base-content/60 mt-1">Range: 15-45 seconds</p>
                             </div>
 
-                            <div className="form-control">
-                                <label className="label">
-                                    <span className="label-text font-medium">Auto-progress at (seconds before end)</span>
-                                </label>
-                                <div className="flex items-center gap-3">
+                            {/* Auto-progress Threshold */}
+                            <div className="rounded-lg bg-base-300/20 p-4">
+                                <div className="form-control">
+                                    <span className="text-sm font-medium mb-3">Auto-progress at (seconds before end)</span>
                                     <input 
                                         type="range" 
                                         min="0" 
                                         max={Math.max(0, playNextShowThreshold - 3)} 
                                         value={playNextAutoProgressThreshold} 
-                                        className="range range-secondary flex-1" 
+                                        className="range range-secondary w-full" 
                                         onChange={handleAutoProgressThresholdChange}
                                     />
-                                    <input 
-                                        type="number" 
-                                        min="0" 
-                                        max={Math.max(0, playNextShowThreshold - 3)} 
-                                        value={playNextAutoProgressThreshold} 
-                                        className="input input-bordered w-20 text-center" 
-                                        onChange={handleAutoProgressThresholdChange}
-                                    />
+                                    <div className="flex justify-between items-center mt-2">
+                                        <span className="text-sm opacity-70">0s</span>
+                                        <input 
+                                            type="number" 
+                                            min="0" 
+                                            max={Math.max(0, playNextShowThreshold - 3)} 
+                                            value={playNextAutoProgressThreshold} 
+                                            className="input input-bordered input-sm w-16 text-center" 
+                                            onChange={handleAutoProgressThresholdChange}
+                                        />
+                                        <span className="text-sm opacity-70">{Math.max(0, playNextShowThreshold - 3)}s</span>
+                                    </div>
+                                    <p className="text-xs opacity-70 mt-2">Must be at least 3 seconds before show threshold</p>
                                 </div>
-                                <p className="text-xs text-base-content/60 mt-1">Range: 0-{Math.max(0, playNextShowThreshold - 3)} seconds (must be at least 3s before show threshold)</p>
                             </div>
                         </div>
                     )}

@@ -64,27 +64,41 @@ export default function Home() {
         );
     }
 
+    const getAllLatestItems = () => {
+        const allLatest = [];
+        homeData.forEach(item => {
+            if (item.latest && item.latest.length > 0) {
+                allLatest.push(...item.latest);
+            }
+        });
+        return allLatest;
+    };
+
+    const heroItems = getAllLatestItems();
+
     return (
         <>
             <section className="flex flex-col min-h-screen px-8 pb-8 pt-4 mt-16">
                 <h1 className="text-4xl mb-8">Home</h1>
+                
+                {heroItems.length > 0 && (
+                    <HeroCarousel items={heroItems} />
+                )}
+
                 {homeData.length > 0 ? (
                     <section>
                         {homeData.map((item, index) => (
                             <React.Fragment key={`section-${index}`}>
                                 {item.latest && item.latest.length > 0 ? (
-                                    <>
-                                        <HeroCarousel items={item.latest} />
-                                        <div key={`latest-${index}`} className="">
-                                            <a href={`/library?id=${item.Id}`} className="hover:underline">
-                                                <h2 className="text-2xl font-bold mb-4">Latest {item.Name}</h2>
-                                            </a>
-                                            <LibraryViewDisplay data={item.latest} viewMode="posterView" />
-                                        </div>
-                                    </>
+                                    <div key={`latest-${index}`} className="mt-8">
+                                        <a href={`/library?id=${item.Id}`} className="hover:underline">
+                                            <h2 className="text-2xl font-bold mb-4">Latest {item.Name}</h2>
+                                        </a>
+                                        <LibraryViewDisplay data={item.latest} viewMode="posterView" />
+                                    </div>
                                 ) : null}
                                 {item.comingSoon && item.comingSoon.length > 0 ? (
-                                    <div className="mt-4" title="These titles are currently being downloaded and soon will be available in the library.">
+                                    <div className="mt-8" title="These titles are currently being downloaded and soon will be available in the library.">
                                         <Link href="/request" className="hover:underline">
                                             <h2 className="text-2xl font-bold mb-4">Coming Soon to MoNobar</h2>
                                             <HomeRequestList />
