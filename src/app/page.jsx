@@ -7,11 +7,23 @@ import LibraryViewDisplay from "@/components/LibraryViewDisplay";
 import Link from 'next/link';
 import HomeRequestList from '@/components/HomeRequestList';
 import HeroCarousel from '@/components/HomeHeroCarousel';
+import { homeViewUtils } from '@/lib/homeViewUtils';
 
 export default function Home() {
     const [homeData, setHomeData] = useState(null);
     const [error, setError] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [homeViewMode, setHomeViewMode] = useState('default_poster_home');
+
+    useEffect(() => {
+        const savedViewMode = homeViewUtils.getHomeViewMode();
+        setHomeViewMode(savedViewMode);
+    }, []);
+
+    const handleViewModeChange = (mode) => {
+        setHomeViewMode(mode);
+        homeViewUtils.setHomeViewMode(mode);
+    };
 
     useEffect(() => {
         const fetchHomeData = async () => {
@@ -79,7 +91,21 @@ export default function Home() {
     return (
         <>
             <section className="flex flex-col min-h-screen px-8 pb-8 pt-4 mt-16">
-                <h1 className="text-4xl mb-8">Home</h1>
+                <div className="flex items-center justify-between mb-8">
+                    <h1 className="text-4xl">Home</h1>
+                    <div className="flex gap-2">
+                        {homeViewUtils.getAvailableViewModes().map((mode) => (
+                            <button
+                                key={mode.id}
+                                onClick={() => handleViewModeChange(mode.id)}
+                                className={`btn btn-sm ${homeViewMode === mode.id ? 'btn-primary' : 'btn-ghost'}`}
+                                title={mode.description}
+                            >
+                                {mode.icon}
+                            </button>
+                        ))}
+                    </div>
+                </div>
                 
                 {heroItems.length > 0 && (
                     <HeroCarousel items={heroItems} />
@@ -94,7 +120,7 @@ export default function Home() {
                                         <a href={`/library?id=${item.Id}`} className="hover:underline">
                                             <h2 className="text-2xl font-bold mb-4">Latest {item.Name}</h2>
                                         </a>
-                                        <LibraryViewDisplay data={item.latest} viewMode="posterView" />
+                                        <LibraryViewDisplay data={item.latest} viewMode={homeViewMode} />
                                     </div>
                                 ) : null}
                                 {item.comingSoon && item.comingSoon.length > 0 ? (

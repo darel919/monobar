@@ -58,8 +58,7 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
     const status = usePlaybackStore(useCallback(state => state.status, []));
     const src = usePlaybackStore(useCallback(state => state.src, []));
     const playNextShowThreshold = usePlaybackStore(useCallback(state => state.playNextShowThreshold, []));
-    const playNextAutoProgressThreshold = usePlaybackStore(useCallback(state => state.playNextAutoProgressThreshold, []));
-    const [playbackEnded, setPlaybackEnded] = useState(false);
+    const playNextAutoProgressThreshold = usePlaybackStore(useCallback(state => state.playNextAutoProgressThreshold, []));    const [playbackEnded, setPlaybackEnded] = useState(false);
     const [showStats, setShowStats] = useState(false);
     const [playerMounted, setPlayerMounted] = useState(false);      
     const [showPlayNext, setShowPlayNext] = useState(false);
@@ -68,15 +67,18 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
     const [nextEpisode, setNextEpisode] = useState(null);
     const [currentSeriesData, setCurrentSeriesData] = useState(seriesData);        
     const [wasInFullscreen, setWasInFullscreen] = useState(false);
-    const [showSettingsModal, setShowSettingsModal] = useState(false);      
+    const [showSettingsModal, setShowSettingsModal] = useState(false);    const [playbackStartTimeTicks, setPlaybackStartTimeTicks] = useState(null);      
     const playNextCountdownInterval = useRef(null);
     const playNextCheckInterval = useRef(null);
     const playerId = useRef(`player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`).current;
+    const lastKnownCurrentTime = useRef(0);
 
-    const [containerReady, setContainerReady] = useState(false);        
-    useEffect(() => {
+    const [containerReady, setContainerReady] = useState(false);          
+      useEffect(() => {
         setContainerReady(false);
         setPlayNextDismissed(false);
+        setPlaybackStartTimeTicks(null);
+        lastKnownCurrentTime.current = 0;
         const timeout = setTimeout(() => setContainerReady(true), 0);
         return () => clearTimeout(timeout);
     }, [id]);
@@ -107,7 +109,8 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
         } catch {
             return fallback;
         }
-    };    const setUserPreference = (key, value) => {
+    };    
+    const setUserPreference = (key, value) => {
         if (typeof window === 'undefined') return;
         try {
             localStorage.setItem(key, value);
@@ -335,7 +338,8 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
                     if (Hls.isSupported()) {
                         if (art.hls) art.hls.destroy();
                         const hls = new Hls({
-                            debug: isDev,
+                            // debug: isDev,
+                            debug:false,
                             autoStartLoad: true,
                             lowLatencyMode: true,
                             maxBufferLength: 120,
@@ -400,10 +404,39 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
                     }
                 }
             },
-        });
-        function getStatusData() {
+        });          function getStatusData(preservedCurrentTime = null) {
+            const actualCurrentTime = preservedCurrentTime !== null ? preservedCurrentTime : art.currentTime;
+            const currentTimeMs = actualCurrentTime * 1000;
+            const positionTicks = Math.round(currentTimeMs * 10000);
+            
+            const bufferedRanges = [];
+            if (art.video && art.video.buffered && art.video.buffered.length > 0) {
+                for (let i = 0; i < art.video.buffered.length; i++) {
+                    bufferedRanges.push({
+                        start: art.video.buffered.start(i) * 10000000,
+                        end: art.video.buffered.end(i) * 10000000
+                    });
+                }
+            }
+
             return {
-                currentTime: art.currentTime,
+                VolumeLevel: Math.round((art.volume || 1) * 100),
+                IsMuted: art.muted || false,
+                IsPaused: art.paused || false,
+                RepeatMode: "RepeatNone",
+                ShuffleMode: "Sorted",
+                MaxStreamingBitrate: art.hls?.levels?.[art.hls.currentLevel]?.bitrate || 0,
+                PositionTicks: positionTicks,
+                PlaybackStartTimeTicks: playbackStartTimeTicks || Date.now() * 10000,
+                PlaybackRate: art.playbackRate || 1,
+                SubtitleStreamIndex: art.subtitle ? (art.subtitle.currentIndex || -1) : -1,
+                SecondarySubtitleStreamIndex: -1,
+                AudioStreamIndex: art.hls ? (art.hls.audioTrack || 0) : 0,
+                BufferedRanges: bufferedRanges,
+                PlaylistItemId: `playlistItem0`,
+                MediaSourceId: fullData?.MediaSourceId || fullData?.Id,
+                CanSeek: art.video ? art.video.seekable.length > 0 : true,                ItemId: fullData?.Id,
+                currentTime: actualCurrentTime,
                 bufferedRange: art.video && art.video.buffered && art.video.buffered.length > 0 ? {
                     start: art.video.buffered.start(0),
                     end: art.video.buffered.end(0)
@@ -412,20 +445,17 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
                     start: art.video.seekable.start(0),
                     end: art.video.seekable.end(0)
                 } : null,
-                
                 currentSubtitleIndex: art.subtitle && art.subtitle.currentIndex,
                 currentAudioIndex: art.hls && art.hls.audioTrack,
                 mediaSourceId: fullData?.MediaSourceId,
-                itemId: fullData?.Id,
-                playbackStartTimeTicks: undefined,
-                nowPlayingQueue: undefined            
+                itemId: fullData?.Id,        
             };
         }
         
-        let timeupdateInterval = null;        
-        const startStatusInterval = () => {
+        let timeupdateInterval = null;          const startStatusInterval = () => {
             if (timeupdateInterval) clearInterval(timeupdateInterval);
             timeupdateInterval = setInterval(() => {
+                lastKnownCurrentTime.current = art.currentTime;
                 postStatus('timeupdate', getStatusData());
             }, 3000);
         };
@@ -435,12 +465,16 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
                 clearInterval(timeupdateInterval);
                 timeupdateInterval = null;
             }
-        };        
+        };          
         art.on('ready', () => {
+            if (!playbackStartTimeTicks) {
+                setPlaybackStartTimeTicks(Date.now() * 10000);
+            }
+            
             if (!art.paused) {
                 postStatus('play', getStatusData());
                 startStatusInterval();
-            }              
+            }
             const shouldRestoreFullscreen = sessionStorage.getItem('restoreFullscreen');
             if (isDev) console.log('Checking fullscreen restoration:', shouldRestoreFullscreen);
             if (shouldRestoreFullscreen === 'true') {
@@ -514,15 +548,30 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
                     }, 100);
                 }
             }
-        });
-
+        });        
         art.on('seeked', () => {
             postStatus('seek', getStatusData());
-        });          
+        });        
         const handleEnd = () => {
             try {
-                postStatus('stop', getStatusData());
-                stopStatusInterval();                  
+                const preservedCurrentTime = lastKnownCurrentTime.current;
+                const statusDataBeforeStop = getStatusData(preservedCurrentTime);
+                postStatus('stop', statusDataBeforeStop);
+                stopStatusInterval();
+                
+                // Debug logging to understand why auto-progression might fail
+                if (isDev) {
+                    console.log('handleEnd - Debug info:', {
+                        type,
+                        hasCurrentSeriesData: !!currentSeriesData,
+                        currentSeriesDataId: currentSeriesData?.Id,
+                        hasNextEpisode: !!nextEpisode,
+                        nextEpisodeId: nextEpisode?.Id,
+                        nextEpisodeName: nextEpisode?.Name
+                    });
+                }
+                
+                // Auto-progress to next episode regardless of Play Next settings when video ends naturally
                 if (type === 'Episode' && currentSeriesData && nextEpisode) {                    
                     const shouldRestoreFullscreen = wasInFullscreen || (artRef.current?.art && artRef.current.art.fullscreen);
                     if (shouldRestoreFullscreen) {
@@ -614,11 +663,12 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
                 }
             }, 1000);
         }
-        
-        const handleTimeUpdate = () => {            
+          const handleTimeUpdate = () => {
+            lastKnownCurrentTime.current = art.currentTime;
             if (type === 'Episode' && nextEpisode && art.duration && art.currentTime) {
                 const timeRemaining = art.duration - art.currentTime;                
-                const playNextEnabled = getUserPreference('playNextEnabled', 'true') !== 'false';                if (playNextEnabled && timeRemaining <= playNextShowThreshold && timeRemaining > 0 && !showPlayNext && !playNextDismissed) {
+                const playNextEnabled = getUserPreference('playNextEnabled', 'true') !== 'false';                
+                if (playNextEnabled && timeRemaining <= playNextShowThreshold && timeRemaining > 0 && !showPlayNext && !playNextDismissed) {
                     if (isDev) console.log('Showing Play Next!');                    
                     if (art.fullscreen) {
                         if (isDev) console.log('User was in fullscreen (timeupdate), exiting fullscreen and marking for restoration');
@@ -658,11 +708,10 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
                 }
             }
         };
-        art.on('timeupdate', handleTimeUpdate);
-
-        if (isDev) {
+        art.on('timeupdate', handleTimeUpdate);        if (isDev) {
             console.log('Timeupdate event listener attached for Play Next functionality');
             art.on('timeupdate', () => {
+                lastKnownCurrentTime.current = art.currentTime;
                 if (type === 'Episode' && art.duration && art.currentTime) {
                     const timeRemaining = art.duration - art.currentTime;
                     if (timeRemaining <= 20) {
@@ -670,7 +719,7 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
                     }
                 }
             });
-        }        
+        }
         art.on('progress', () => {
             if (type === 'Episode' && nextEpisode && art.duration && art.currentTime) {
                 const timeRemaining = art.duration - art.currentTime;
@@ -821,13 +870,12 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
             clearActivePlayer(playerId);
             
             if (art && typeof art.destroy === 'function') {
-                if (isDev) console.log(`Destroying player instance ${playerId}`);
-                art.off('error', handlePlayerError);
+                if (isDev) console.log(`Destroying player instance ${playerId}`);                art.off('error', handlePlayerError);
                 art.off('ended', handleEnd);
-                art.video.removeEventListener('ended', handleEnd);
-
-                try {
-                    postStatus('stop', getStatusData()).catch(error => {
+                art.video.removeEventListener('ended', handleEnd);                try {
+                    const preservedCurrentTime = lastKnownCurrentTime.current;
+                    const statusDataBeforeStop = getStatusData(preservedCurrentTime);
+                    postStatus('stop', statusDataBeforeStop).catch(error => {
                         if (isDev) console.warn('Stop status failed:', error);
                     });
                 } catch (error) {
@@ -852,14 +900,16 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
             }, 100);
         }
         setWasInFullscreen(false);
-    };    const handlePlayNext = () => {
+    };   
+     const handlePlayNext = () => {
         if (nextEpisode && currentSeriesData) {            
             const nextEpisodeUrl = `/watch?id=${nextEpisode.Id}&type=Episode&seriesId=${currentSeriesData.Id}`;
             if (isDev) console.log('Manually progressing to next episode:', nextEpisodeUrl);            
             
             router.push(nextEpisodeUrl);
         }
-    };const handleCancelPlayNext = () => {
+    };
+    const handleCancelPlayNext = () => {
         setShowPlayNext(false);
         setPlayNextDismissed(true);
 
@@ -882,7 +932,8 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
         if (isDev) console.log(`PlayNext dismissed - will not auto-progress at ${playNextAutoProgressThreshold} seconds`);
     };
 
-    if (status !== 'playing') return null;    return (
+    if (status !== 'playing') return null;    
+    return (
         <>
             <div ref={artRef} className="absolute w-full h-full left-0 right-0 top-0 bottom-0" />
             <StatsForNerds

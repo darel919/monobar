@@ -8,7 +8,7 @@ const sortOptions = [
   { value: "SortName", label: "Sort Name" },
   { value: "ProductionYear", label: "Production Year" },
   { value: "CommunityRating", label: "Community Rating" },
-  { value: "Random", label: "Random" },
+  // { value: "Random", label: "Random" },
   { value: "Runtime", label: "Runtime" },
 ];
 

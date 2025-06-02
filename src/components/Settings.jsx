@@ -2,31 +2,31 @@
 
 import { useState, useEffect } from 'react';
 import usePlaybackStore from "@/store/playbackStore";
+import { homeViewUtils } from '@/lib/homeViewUtils';
 
 export default function Settings({ showBackButton = true, context = 'standalone' }) {
     const playNextShowThreshold = usePlaybackStore(state => state.playNextShowThreshold);
     const playNextAutoProgressThreshold = usePlaybackStore(state => state.playNextAutoProgressThreshold);
     const setPlayNextShowThreshold = usePlaybackStore(state => state.setPlayNextShowThreshold);
     const setPlayNextAutoProgressThreshold = usePlaybackStore(state => state.setPlayNextAutoProgressThreshold);
-    
-    const [settings, setSettings] = useState({
+      const [settings, setSettings] = useState({
         playTrailersAutomatically: true,
         playNextEnabled: true,
         theme: 'system',
-        subtitleSize: 'medium'
+        subtitleSize: 'medium',
+        homeViewMode: 'posterView'
     });
-    const [isLoaded, setIsLoaded] = useState(false);
-
-    useEffect(() => {          
+    const [isLoaded, setIsLoaded] = useState(false);    useEffect(() => {          
         const savedSettings = {
             playTrailersAutomatically: localStorage.getItem('playTrailersAutomatically') !== 'false',
             playNextEnabled: localStorage.getItem('playNextEnabled') !== 'false',
             theme: localStorage.getItem('theme') || 'system',
-            subtitleSize: localStorage.getItem('subtitleSize') || 'medium'
+            subtitleSize: localStorage.getItem('subtitleSize') || 'medium',
+            homeViewMode: homeViewUtils.getHomeViewMode()
         };
         setSettings(savedSettings);
         setIsLoaded(true);
-    }, []);   
+    }, []);
 
     useEffect(() => {
         if (!isLoaded) return;
@@ -53,20 +53,19 @@ export default function Settings({ showBackButton = true, context = 'standalone'
 
         applyTheme(settings.theme);
         localStorage.setItem('theme', settings.theme);
-    }, [settings.theme, isLoaded]);      
-
-    useEffect(() => {
+    }, [settings.theme, isLoaded]);          useEffect(() => {
         if (!isLoaded) return;
         localStorage.setItem('playTrailersAutomatically', settings.playTrailersAutomatically.toString());
         localStorage.setItem('playNextEnabled', settings.playNextEnabled.toString());
         localStorage.setItem('subtitleSize', settings.subtitleSize);
+        homeViewUtils.setHomeViewMode(settings.homeViewMode);
         
         // Trigger custom event for real-time subtitle updates
         window.dispatchEvent(new StorageEvent('storage', {
             key: 'subtitleSize',
             newValue: settings.subtitleSize
         }));
-    }, [settings.playTrailersAutomatically, settings.playNextEnabled, settings.subtitleSize, isLoaded]);
+    }, [settings.playTrailersAutomatically, settings.playNextEnabled, settings.subtitleSize, settings.homeViewMode, isLoaded]);
 
     const handleTrailerToggle = () => {
         setSettings(prev => ({
@@ -87,12 +86,17 @@ export default function Settings({ showBackButton = true, context = 'standalone'
             ...prev,
             theme: newTheme
         }));
-    };
-
-    const handleSubtitleSizeChange = (newSize) => {
+    };    const handleSubtitleSizeChange = (newSize) => {
         setSettings(prev => ({
             ...prev,
             subtitleSize: newSize
+        }));
+    };
+
+    const handleHomeViewModeChange = (newMode) => {
+        setSettings(prev => ({
+            ...prev,
+            homeViewMode: newMode
         }));
     };
 
@@ -108,19 +112,18 @@ export default function Settings({ showBackButton = true, context = 'standalone'
         if (value >= 0 && value <= Math.max(0, playNextShowThreshold - 3)) {
             setPlayNextAutoProgressThreshold(value);
         }
-    };
-
-    const handleResetSettings = () => {
-        if (confirm('Are you sure you want to reset all settings to default?')) {
-            localStorage.removeItem('playTrailersAutomatically');
+    };    const handleResetSettings = () => {
+        if (confirm('Are you sure you want to reset all settings to default?')) {            localStorage.removeItem('playTrailersAutomatically');
             localStorage.removeItem('playNextEnabled');
             localStorage.removeItem('theme');
             localStorage.removeItem('subtitleSize');
+            localStorage.removeItem('homeViewMode');            
             setSettings({
                 playTrailersAutomatically: true,
                 playNextEnabled: true,
                 theme: 'system',
-                subtitleSize: 'medium'
+                subtitleSize: 'medium',
+                homeViewMode: 'default_poster_home'
             });
             document.documentElement.removeAttribute('data-theme');
             window.location.reload();
@@ -299,6 +302,44 @@ export default function Settings({ showBackButton = true, context = 'standalone'
                                     <p className="text-sm whitespace-normal leading-snug">Maximum subtitle size.</p>
                                 </div>
                             </label>
+                        </div>
+                    </div>                </div>
+            </div>
+
+            {/* Home Settings */}
+            <div className="card bg-base-200 shadow-xl">
+                <div className="card-body">
+                    <h2 className="card-title text-2xl mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                        </svg>
+                        Home
+                    </h2>
+                    
+                    {/* Home View Mode Selection */}
+                    <div className="form-control">
+                        <div className="label">
+                            <span className="label-text text-lg font-medium">Default View Mode</span>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {homeViewUtils.getAvailableViewModes().map((mode) => (
+                                <label key={mode.id} className="label cursor-pointer justify-start gap-3 p-4 rounded-lg border border-base-300 hover:bg-base-300 transition-colors flex flex-row items-start">
+                                    <input 
+                                        type="radio" 
+                                        name="homeViewMode" 
+                                        className="radio radio-primary mt-1" 
+                                        checked={settings.homeViewMode === mode.id}
+                                        onChange={() => handleHomeViewModeChange(mode.id)}
+                                    />
+                                    <div className="flex flex-col">
+                                        <span className="label-text font-medium flex items-center gap-2">
+                                            {mode.icon}
+                                            {mode.name}
+                                        </span>
+                                        <p className="text-sm whitespace-normal leading-snug">{mode.description}</p>
+                                    </div>
+                                </label>
+                            ))}
                         </div>
                     </div>
                 </div>

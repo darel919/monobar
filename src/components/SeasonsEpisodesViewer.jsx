@@ -327,15 +327,20 @@ export default function SeasonsEpisodesViewer({ seriesData, currentEpisodeId, mo
             day: 'numeric',
             year: 'numeric'
         });
-    };
-
+    };    
     const getWatchProgress = (episode) => {
-        if (!episode.UserData || !episode.RunTimeTicks) return 0;
-        if (episode.UserData.Played) return 100;
+        if (!episode.UserData) return 0;
+        
+        // Use PlayedPercentage if available
+        if (episode.UserData.PlayedPercentage !== undefined && episode.UserData.PlayedPercentage !== null) {
+            return Math.min(episode.UserData.PlayedPercentage, 100);
+        }
+        
+        // Fall back to calculating from PlaybackPositionTicks
+        if (!episode.RunTimeTicks) return 0;
         if (!episode.UserData.PlaybackPositionTicks) return 0;        
         return Math.min((episode.UserData.PlaybackPositionTicks / episode.RunTimeTicks) * 100, 100);
-    };
-
+    };    
     const hasWatchProgress = (episode) => {
         const progress = getWatchProgress(episode);
         return progress > 0 && progress < 100;
@@ -349,47 +354,46 @@ export default function SeasonsEpisodesViewer({ seriesData, currentEpisodeId, mo
         );
     }    
     return (
-        <div className={`flex ${isWatchMode ? 'flex-col h-full' : 'flex-col'}`}>
-            {/* Season Selector */}
-            <div className={`px-3 py-4 `}>
-                <h3 className={`font-semibold mb-3 text-lg md:text-xl`}>Seasons</h3>
+        <div className={`flex ${isWatchMode ? 'flex-col h-full' : 'flex-col'}`}>            {/* Season Selector */}
+            <div className={`p-4`}>
+                {/* <h3 className={`font-semibold mb-3 text-lg md:text-xl`}>Seasons</h3> */}
                 
                 {/* Mobile: Horizontal scroll, Desktop: Flex wrap */}
                 <div className="md:hidden">
-                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    <div className="flex gap-6 overflow-x-auto pb-2 scrollbar-hide">
                         {seriesData.availableSeasons.map((season) => (
-                            <button
+                            <div
                                 key={season.Id}
                                 onClick={() => handleSeasonChange(season)}
-                                className={`btn btn-sm whitespace-nowrap flex-shrink-0 px-4 py-2 min-h-[2.5rem] ${
+                                className={`cursor-pointer whitespace-nowrap flex-shrink-0 px-2 py-3 transition-all duration-200 border-b-2 ${
                                     selectedSeason?.Id === season.Id 
-                                        ? 'btn-primary' 
-                                        : 'btn-ghost'
+                                        ? 'border-primary text-primary font-medium' 
+                                        : 'border-transparent text-base-content/70 hover:text-base-content hover:border-base-content/30'
                                 }`}
                             >
                                 Season {season.IndexNumber || season.Name}
-                            </button>
+                            </div>
                         ))}
                     </div>
                 </div>
                 
                 {/* Desktop: Traditional flex wrap */}
-                <div className="hidden md:flex gap-2 flex-wrap">
+                <div className="hidden md:flex gap-6 flex-wrap">
                     {seriesData.availableSeasons.map((season) => (
-                        <button
+                        <div
                             key={season.Id}
                             onClick={() => handleSeasonChange(season)}
-                            className={`btn btn-sm ${
+                            className={`cursor-pointer px-2 py-3 transition-all duration-200 border-b-2 ${
                                 selectedSeason?.Id === season.Id 
-                                    ? 'btn-primary' 
-                                    : 'btn-ghost'
+                                    ? 'border-primary text-primary font-medium' 
+                                    : 'border-transparent text-base-content/70 hover:text-base-content hover:border-base-content/30'
                             }`}
                         >
                             Season {season.IndexNumber || season.Name}
-                        </button>
+                        </div>
                     ))}
                 </div>
-            </div>            
+            </div>
             {/* Episodes List */}
             <div className={`flex-1 ${isWatchMode ? 'md:overflow-y-auto' : 'overflow-y-auto'}`}>
                 {selectedSeason?.episodes?.length > 0 ? (                    
@@ -426,7 +430,8 @@ export default function SeasonsEpisodesViewer({ seriesData, currentEpisodeId, mo
                                           selectedEpisode?.Id === episode.Id ? 'shadow-md' : 
                                           'hover:shadow-md'}
                                         ${mode !== 'info' ? '' : currentEpisodeId === episode.Id ? 'md:ring-2 md:ring-primary' : 'hover:opacity-80'}`}
-                                >                                {/* Mobile Layout - Same as Desktop Card */}
+                                >                                
+                                {/* Mobile Layout - Same as Desktop Card */}
                                     <div className={`${mode === 'info' ? 'md:hidden' : 'md:hidden'}`}>
                                         <div className="p-3">
                                             <div className="flex flex-col h-full">
@@ -460,7 +465,7 @@ export default function SeasonsEpisodesViewer({ seriesData, currentEpisodeId, mo
                                                             {hasWatchProgress(episode) && (
                                                                 <div className="absolute bottom-0 left-0 right-0 bg-black/20 h-1">
                                                                     <div 
-                                                                        className="h-full bg-primary transition-all duration-300"
+                                                                        className="h-full bg-accent transition-all duration-300"
                                                                         style={{ width: `${getWatchProgress(episode)}%` }}
                                                                     />
                                                                 </div>
@@ -555,7 +560,7 @@ export default function SeasonsEpisodesViewer({ seriesData, currentEpisodeId, mo
                                                             {hasWatchProgress(episode) && (
                                                                 <div className="absolute bottom-0 left-0 right-0 bg-black/20 h-1">
                                                                     <div 
-                                                                        className="h-full bg-primary transition-all duration-300"
+                                                                        className="h-full bg-accent transition-all duration-300"
                                                                         style={{ width: `${getWatchProgress(episode)}%` }}
                                                                     />
                                                                 </div>
@@ -651,7 +656,7 @@ export default function SeasonsEpisodesViewer({ seriesData, currentEpisodeId, mo
                                                         {hasWatchProgress(episode) && (
                                                             <div className="absolute bottom-0 left-0 right-0 bg-black/20 h-0.5">
                                                                 <div 
-                                                                    className="h-full bg-primary transition-all duration-300"
+                                                                    className="h-full bg-accent transition-all duration-300"
                                                                     style={{ width: `${getWatchProgress(episode)}%` }}
                                                                 />
                                                             </div>

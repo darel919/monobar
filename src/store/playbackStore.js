@@ -148,10 +148,10 @@ const usePlaybackStore = create((set, get) => ({
                 set({ activePlayerId: null });
             }
 
-            const sessionId = getOrCreateGenSessionId();
-            if (sessionId) {
-                await updateState(sessionId);
-            }        
+            // const sessionId = getOrCreateGenSessionId();
+            // if (sessionId) {
+            //     await updateState(sessionId);
+            // }        
         } catch (error) {
             if (process.env.NODE_ENV === 'development') {
                  console.error('Unable to report stopped playback status!\n', error);

@@ -175,7 +175,7 @@ export default async function InfoPage({ searchParams }) {
       {type === 'Series' && infoData.availableSeasons && infoData.availableSeasons.length > 0 && (
         <section className="px-8 my-8">
           <h3 className="text-2xl font-bold mb-4">Episodes</h3>
-          <div className="bg-base-300 text-base-content rounded-lg overflow-hidden">
+          <div className="bg-base-200 text-base-content rounded-lg overflow-hidden">
             <SeasonsEpisodesViewer seriesData={infoData} mode="info" />
           </div>
         </section>

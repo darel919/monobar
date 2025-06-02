@@ -77,16 +77,16 @@ export default function LibraryViewDisplay({ data, viewMode, disableClick, onReq
   const handleImgError = (id) => {
     setImgLoaded(prev => ({ ...prev, [id]: true }));
     setImgError(prev => ({ ...prev, [id]: true }));
-  };
-
-  const getImageSource = (item, isComingSoon = false) => {
+  };  const getImageSource = (item, isComingSoon = false) => {
     if ((responsiveViewMode === "posterView_comingSoon" || isComingSoon)) {
       return item.posterPath;
     } else if (responsiveViewMode === "recommendation" || (responsiveViewMode === "poster grid" && viewMode === "recommendation")) {
       return item.ImageTags?.Primary;
-    } else if (responsiveViewMode === "poster grid" || responsiveViewMode === "posterView") {
+    } else if (responsiveViewMode === "poster grid" || responsiveViewMode === "posterView" || responsiveViewMode === "default_poster_home") {
       return item.posterPath;
-  } else if (responsiveViewMode === "default_search" || responsiveViewMode === "default_search_genre") {
+    } else if (responsiveViewMode === "default_thumb_home") {
+      return item.thumbPath || item.ImageTags?.Primary;
+    } else if (responsiveViewMode === "default_search" || responsiveViewMode === "default_search_genre") {
       return item.thumbPath;
     }
     return item.thumbPath;
@@ -247,7 +247,6 @@ export default function LibraryViewDisplay({ data, viewMode, disableClick, onReq
       </>
     );
   }
-
   if (responsiveViewMode === "posterView") {
     return (
       <section className="flex overflow-x-auto">
@@ -276,6 +275,132 @@ export default function LibraryViewDisplay({ data, viewMode, disableClick, onReq
               )}
               {imgLoaded[item.Id] && (imgError[item.Id] || !item.posterPath) && (
                 <div className="flex items-center justify-center w-full h-full bg-gray-200 rounded-lg text-xs text-gray-500">No Image</div>
+              )}
+            </div>
+          </a>
+        ))}
+      </section>
+    );
+  }
+  if (responsiveViewMode === "default_poster_home") {
+    return (
+      <section className="flex overflow-x-auto">
+        {data.map((item) => (
+          <a
+            href={!disableClick ? `/info?id=${item.Id}&type=${item.Type}` : undefined}
+            key={item.Id}
+            className={`flex flex-col items-center min-w-[220px] max-w-[180px] ${itemHoverClass}`}
+            title={item.Overview}
+            {...(!disableClick ? {} : { style: { cursor: 'default', pointerEvents: 'none' } })}
+          >
+            <div className="relative w-full aspect-[2/3]">
+              {!imgLoaded[item.Id] && (
+                <div className="skeleton absolute top-0 left-0 w-full h-full rounded-lg opacity-100 transition-opacity" />
+              )}
+              {imgLoaded[item.Id] && !imgError[item.Id] && item.posterPath && (
+                <img
+                  loading="lazy"
+                  src={item.posterPath}
+                  alt={item.Name}
+                  className={`h-full w-full object-cover rounded-lg aspect-[2/3] transition-opacity duration-200 ${imgLoaded[item.Id] && !imgError[item.Id] ? 'opacity-100' : 'opacity-0'}`}
+                  onLoad={() => handleImgLoad(item.Id)}
+                  onError={() => handleImgError(item.Id)}
+                  referrerPolicy="unsafe-url"
+                />
+              )}
+              {imgLoaded[item.Id] && (imgError[item.Id] || !item.posterPath) && (
+                <div className="flex flex-col items-center justify-center w-full h-full bg-base-200 rounded-lg text-xs text-base-content p-2 text-center">
+                  {item.ImageTags.Logo ? (
+                    <img src={item.ImageTags.Logo} alt={item.Name} className="w-fit max-h-16 object-contain mb-2" />
+                  ) : (
+                    <div className="font-bold text-2xl my-2 ">{item.OriginalTitle || item.Name}</div>
+                  )}
+                  {item.ProductionYear && <div>{item.ProductionYear}</div>}
+                </div>
+              )}
+            </div>
+          </a>
+        ))}
+      </section>
+    );
+  }
+
+  if (responsiveViewMode === "default_thumb_home") {
+    return (
+      <section className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide">
+        {data.map((item) => (
+          <a
+            href={!disableClick ? `/info?id=${item.Id}&type=${item.Type}` : undefined}
+            key={item.Id}
+            className={`flex flex-col items-center min-w-[280px] max-w-[280px] ${itemHoverClass} flex-shrink-0`}
+            title={item.Overview}
+            {...(!disableClick ? {} : { style: { cursor: 'default', pointerEvents: 'none' } })}
+          >
+            <div className="relative w-full aspect-[16/9]">
+              {!imgLoaded[item.Id] && (
+                <div className="skeleton absolute top-0 left-0 w-full h-full rounded-lg opacity-100 transition-opacity" />
+              )}
+              {imgLoaded[item.Id] && !imgError[item.Id] && (item.thumbPath || item.ImageTags?.Primary) && (
+                <img
+                  loading="lazy"
+                  src={item.thumbPath || item.ImageTags?.Primary}
+                  alt={item.Name}
+                  className={`h-full w-full object-cover rounded-lg transition-opacity duration-200 ${imgLoaded[item.Id] && !imgError[item.Id] ? 'opacity-100' : 'opacity-0'}`}
+                  onLoad={() => handleImgLoad(item.Id)}
+                  onError={() => handleImgError(item.Id)}
+                  referrerPolicy="unsafe-url"
+                />
+              )}
+              {imgLoaded[item.Id] && (imgError[item.Id] || (!item.thumbPath && !item.ImageTags?.Primary)) && (                <div className="flex flex-col items-center justify-center w-full h-full bg-base-200 rounded-lg text-xs text-base-content p-2 text-center">
+                  {item.ImageTags.Logo ? (
+                    <img src={item.ImageTags.Logo} alt={item.Name} className="w-fit max-h-16 object-contain mb-2" />
+                  ) : (
+                    <div className="font-bold text-2xl my-2 ">{item.OriginalTitle || item.Name}</div>
+                  )}
+                  {item.ProductionYear && <div>{item.ProductionYear}</div>}
+                </div>
+              )}
+            </div>
+          </a>
+        ))}
+      </section>
+    );
+  }
+
+  if (responsiveViewMode === "default_thumb_library") {
+    return (
+      <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2">
+        {data.map((item) => (
+          <a
+            href={!disableClick ? `/info?id=${item.Id}&type=${item.Type}` : undefined}
+            key={item.Id}
+            className={`flex flex-col items-center ${itemHoverClass}`}
+            title={item.Overview}
+            {...(!disableClick ? {} : { style: { cursor: 'default', pointerEvents: 'none' } })}
+          >
+            <div className="relative w-full aspect-[16/9]">
+              {!imgLoaded[item.Id] && (
+                <div className="skeleton absolute top-0 left-0 w-full h-full rounded-lg opacity-100 transition-opacity" />
+              )}
+              {imgLoaded[item.Id] && !imgError[item.Id] && (item.thumbPath || item.ImageTags?.Primary) && (
+                <img
+                  loading="lazy"
+                  src={item.thumbPath || item.ImageTags?.Primary}
+                  alt={item.Name}
+                  className={`h-full w-full object-cover rounded-sm transition-opacity duration-200 ${imgLoaded[item.Id] && !imgError[item.Id] ? 'opacity-100' : 'opacity-0'}`}
+                  onLoad={() => handleImgLoad(item.Id)}
+                  onError={() => handleImgError(item.Id)}
+                  referrerPolicy="unsafe-url"
+                />
+              )}
+              {imgLoaded[item.Id] && (imgError[item.Id] || (!item.thumbPath && !item.ImageTags?.Primary)) && (
+                <div className="flex flex-col items-center justify-center w-full h-full bg-base-200 rounded-lg text-xs text-base-content p-2 text-center">
+                  {item.ImageTags.Logo ? (
+                    <img src={item.ImageTags.Logo} alt={item.Name} className="w-fit max-h-16 object-contain mb-2" />
+                  ) : (
+                    <div className="font-bold text-2xl my-2 ">{item.OriginalTitle || item.Name}</div>
+                  )}
+                  {item.ProductionYear && <div>{item.ProductionYear}</div>}                </div>
               )}
             </div>
           </a>
@@ -543,7 +668,7 @@ export default function LibraryViewDisplay({ data, viewMode, disableClick, onReq
 
   return (
     <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8">
-      {data.map((item) => (
+      {data.map((item) => (        
         <a
           href={!disableClick ? `/info?id=${item.Id}&type=${item.Type}` : undefined}
           key={item.Id}

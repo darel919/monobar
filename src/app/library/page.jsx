@@ -104,7 +104,7 @@ export default async function LibraryTypeView({ searchParams }) {
           <LibrarySortControl id={id} sortBy={sortBy} sortOrder={sortOrder} />
         )}
       </section>
-      <LibraryViewDisplay data={libData.content} />
+      <LibraryViewDisplay data={libData.content} viewMode="default_thumb_library" />
     </section>
   );
 }
