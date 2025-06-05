@@ -4,7 +4,8 @@ import { useAuthStore } from "@/lib/authStore";
 import { useEffect } from "react";
 
 export default function SessionInitializer() {
-  const { initializeAuth, checkAuthStatus, isLoading } = useAuthStore();  useEffect(() => {
+  const { initializeAuth, checkAuthStatus, isLoading } = useAuthStore();  
+  useEffect(() => {
     initializeAuth();
     checkAuthStatus();
     const interval = setInterval(checkAuthStatus, 30000);

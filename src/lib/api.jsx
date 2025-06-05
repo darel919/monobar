@@ -68,13 +68,15 @@ async function handleAuthRetry(response, retryCallback, retryCount = 0) {
     return null;
 }
 
+
+
 export async function getJellyId(providerId) {
     if (!providerId) {
         throw new Error('Provider ID is required for Jelly authentication');
     }
 
     try {
-        const response = await fetch(`${API_BASE_URL}/getJellyId`, {
+        const response = await fetch(`${API_BASE_URL}/jellyfin/profile`, {
             method: 'GET',
             headers: {
                 'Authorization': providerId,
@@ -100,6 +102,63 @@ export async function getJellyId(providerId) {
     } catch (error) {
         if (error.name === 'TypeError' && error.message.includes('fetch')) {
             throw new Error('Unable to connect to Jelly authentication server. Please check your internet connection.');
+        }
+        throw error;
+    }
+}
+
+export async function updateJellyProfile(userSession) {
+    // console.log("Update jelly profile received")
+    if (!userSession?.user?.user_metadata) {
+        throw new Error('User session or metadata is required for profile update');
+    }
+
+    const profileData = {
+        avatarImageUrl: userSession.user.user_metadata.avatar_url || null,
+        name: userSession.user?.user_metadata?.full_name || null
+    };    
+    let jellyUserId = null;
+    try {
+        const Cookies = (await import('js-cookie')).default;
+        jellyUserId = Cookies.get('jellyUserId');
+    } catch (error) {
+        console.warn('Could not access Jellyfin user ID cookie:', error);
+    }
+
+    if (!jellyUserId) {
+        console.warn('No Jellyfin user ID available, skipping profile update');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/jellyfin/profile`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'User-Agent': 'dp-Monobar',
+                'Authorization': jellyUserId,
+                'X-Environment': getEnvironmentHeader(),
+                'Origin': typeof window !== 'undefined' ? window.location.origin : ''
+            },
+            body: JSON.stringify(profileData)
+        });
+        // console.log('Updating Jelly profile with data:', profileData);
+
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => 'Unknown error');
+            throw new Error(`Failed to update Jelly profile (HTTP ${response.status}): ${errorText}`);
+        }
+
+        const data = await response.json();
+        
+        if (!data || typeof data !== 'object') {
+            throw new Error('Invalid response format from Jelly profile update endpoint');
+        }
+        // console.log('Jelly profile updated successfully:', data);
+        return data;
+    } catch (error) {
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            throw new Error('Unable to connect to Jelly profile server. Please check your internet connection.');
         }
         throw error;
     }

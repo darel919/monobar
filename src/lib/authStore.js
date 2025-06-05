@@ -3,7 +3,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import Cookies from 'js-cookie';
-import { getJellyId } from './api';
+import { getJellyId, updateJellyProfile } from './api';
 import { setCrossDomainCookie, removeCrossDomainCookie } from './cookieUtils';
 
 export const useAuthStore = create(
@@ -21,16 +21,19 @@ export const useAuthStore = create(
       jellyAuthError: null,
       isSuperadmin: (state) => {
         return state.userSession?.user?.user?.user_metadata?.role === 'superadmin';
-      },
+      },      
       fetchJellyId: async (providerId) => {
         if (!providerId) {
           return;
         }
-        
-        try {
+          try {
           set({ isJellyLoading: true, jellyAuthFailed: false, jellyAuthError: null });
-          const data = await getJellyId(providerId);          
+          // console.log('Calling getJellyId with providerId:', providerId);
+          const data = await getJellyId(providerId);
+          // console.log('getJellyId response:', data);
+          
           if (data && data.access_token && data.userId) {
+            // console.log('Valid Jelly credentials received, setting cookies and state');
 
             setCrossDomainCookie('jellyAccessToken', data.access_token, {
               path: '/',
@@ -47,26 +50,41 @@ export const useAuthStore = create(
               jellyUserId: data.userId,
               jellyAuthFailed: false, 
               jellyAuthError: null
-            });          
+            });
+
+            // Update Jelly profile with user session data
+            try {
+              const currentState = get();
+              // console.log('Current user session:', currentState.userSession);
+              if (currentState.userSession) {
+                // console.log('Calling updateJellyProfile...');
+                await updateJellyProfile(currentState.userSession);
+                // console.log('Jelly profile updated successfully');
+              }
+            } catch (profileError) {
+              console.error('Failed to update Jelly profile:', profileError);
+              // Don't fail the entire authentication process if profile update fails
+            }          
           } else {
+            // console.log('Invalid Jelly credentials response:', data);
             set({ 
               jellyAccessToken: null,
               jellyUserId: null,
               jellyAuthFailed: true, 
               jellyAuthError: 'Server did not return valid Jelly credentials'
             });
-          }        
+          }
         } catch (error) {
           set({ 
             jellyAccessToken: null,
             jellyUserId: null,
-            jellyAuthFailed: true, 
+            jellyAuthFailed: true,
             jellyAuthError: error.message || 'Unknown error occurred'
           });
         } finally {
           set({ isJellyLoading: false });
         }
-      },      
+      },
       clearJellyAuth: () => {
 
         removeCrossDomainCookie('jellyAccessToken');
@@ -108,7 +126,7 @@ export const useAuthStore = create(
           (state.jellyAccessToken && state.jellyUserId) || 
           (cookieAccessToken && cookieUserId)
         );
-      },        
+      },          
       handleAuthSuccess: async (userSessionData) => {
         if (!userSessionData) return;
 
@@ -128,6 +146,7 @@ export const useAuthStore = create(
         
         if (providerId) {
           try {
+            // console.log('handleAuthSuccess: calling fetchJellyId with providerId:', providerId);
             await get().fetchJellyId(providerId);
           } catch (error) {
             console.error('Failed to authenticate with Jelly:', error);
@@ -242,8 +261,7 @@ export const useAuthStore = create(
           set({ isLoading: false, isAuthenticated: false, userSession: null });
           return null;
         }
-        
-        if (currentStore.isAuthenticated && currentStore.userSession) {
+          if (currentStore.isAuthenticated && currentStore.userSession) {
           const cookieJellyAccessToken = Cookies.get('jellyAccessToken');
           const cookieJellyUserId = Cookies.get('jellyUserId');
           
@@ -251,10 +269,22 @@ export const useAuthStore = create(
             set({ 
               jellyAccessToken: cookieJellyAccessToken,
               jellyUserId: cookieJellyUserId
-            });          
+            });
           } 
             else if (!cookieJellyAccessToken && !cookieJellyUserId && currentStore.userSession?.user?.user?.user_metadata?.provider_id) {
+            // console.log('initializeAuth: No Jelly cookies found, calling fetchJellyId with providerId:', currentStore.userSession.user.user.user_metadata.provider_id);
             await get().fetchJellyId(currentStore.userSession.user.user.user_metadata.provider_id);
+          }
+
+          // Update profile if user has Jelly credentials
+          if ((cookieJellyAccessToken && cookieJellyUserId) || (currentStore.jellyAccessToken && currentStore.jellyUserId)) {
+            // console.log('initializeAuth: User has Jelly credentials, calling updateJellyProfile');
+            try {
+              await updateJellyProfile(currentStore.userSession);
+              // console.log('initializeAuth: Profile updated successfully');
+            } catch (error) {
+              console.error('initializeAuth: Failed to update profile:', error);
+            }
           }
           
           set({ isLoading: false });
@@ -268,12 +298,19 @@ export const useAuthStore = create(
         }
 
         return await currentStore.fetchUserSession();
-      },      
+      },        
       checkAuthStatus: () => {
+        // console.log('checkAuthStatus called');
         const storedSession = localStorage.getItem('user-session');
         const currentState = get();
         
-
+        // console.log('checkAuthStatus - current state:', {
+        //   isAuthenticated: currentState.isAuthenticated,
+        //   hasUserSession: !!currentState.userSession,
+        //   hasJellyAccessToken: !!currentState.jellyAccessToken,
+        //   hasJellyUserId: !!currentState.jellyUserId,
+        //   hasStoredSession: !!storedSession
+        // });        
         if (currentState.isAuthenticated && currentState.jellyAccessToken && currentState.jellyUserId) {
           return;
         }

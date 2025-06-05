@@ -119,10 +119,10 @@ export default function Player({ poster, fullData, id, type, seriesData }) {
 
     const getSubtitleFontSize = (sizePreference) => {
         const sizeMap = {
-            'small': '16px',
-            'medium': '22px',
-            'large': '28px',
-            'x-large': '36px'
+            'small': '18px',
+            'medium': '24px',
+            'large': '32px',
+            'x-large': '40px'
         };
         return sizeMap[sizePreference] || sizeMap['medium'];
     };
