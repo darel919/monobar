@@ -68,18 +68,21 @@ async function handleAuthRetry(response, retryCallback, retryCount = 0) {
     return null;
 }
 
-
-
 export async function getJellyId(providerId) {
     if (!providerId) {
         throw new Error('Provider ID is required for Jelly authentication');
     }
 
     try {
+        const { useAuthStore } = await import('@/lib/authStore');
+        const authStore = useAuthStore.getState();
+        const fullName = authStore.userSession?.user?.user_metadata?.full_name || '';
+
         const response = await fetch(`${API_BASE_URL}/jellyfin/profile`, {
             method: 'GET',
             headers: {
                 'Authorization': providerId,
+                'Authorizationname': fullName,
                 'Content-Type': 'application/json',
                 'User-Agent': 'dp-Monobar',
                 'X-Environment': getEnvironmentHeader(),
@@ -115,7 +118,8 @@ export async function updateJellyProfile(userSession) {
 
     const profileData = {
         avatarImageUrl: userSession.user.user_metadata.avatar_url || null,
-        name: userSession.user?.user_metadata?.full_name || null
+        name: userSession.user?.user_metadata?.full_name || null,
+        providerId: userSession.user?.user_metadata?.provider_id || null,
     };    
     let jellyUserId = null;
     try {
